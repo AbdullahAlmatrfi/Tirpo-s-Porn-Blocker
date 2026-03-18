@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tirpo's Porn Blocker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="app-shell">
+        <header class="hero">
+            <div class="hero-glow hero-glow-left"></div>
+            <div class="hero-glow hero-glow-right"></div>
+            <div class="hero-topbar">
+                <div class="brand-mark">
+                    <img src="icons/icon128.png" alt="Tirpo's Porn Blocker logo">
+                </div>
+                <div class="brand-copy">
+                    <p class="eyebrow">Modern protection</p>
+                    <h1>Tirpo's Porn Blocker</h1>
+                    <p class="hero-subtitle">Strict blocking with optional safe redirects.</p>
+                </div>
+                <button class="lang-toggle" id="popup-lang-toggle">AR</button>
+                <div class="streak-pill" id="streak-badge" hidden>
+                    <span class="streak-fire">Fire</span>
+                    <span id="streak-badge-count">0d</span>
+                </div>
+            </div>
+            <div class="hero-summary">
+                <div class="summary-card">
+                    <span class="summary-label">Mode</span>
+                    <strong id="hero-mode">Blocking only</strong>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Protected sites</span>
+                    <strong id="hero-site-count">0</strong>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Today</span>
+                    <strong id="hero-today-count">0 blocks</strong>
+                </div>
+            </div>
+        </header>
+
+        <nav class="page-nav" aria-label="Popup navigation">
+            <button class="page-nav__button is-active" data-page="home">Home</button>
+            <button class="page-nav__button" data-page="block">Block</button>
+            <button class="page-nav__button" data-page="redirect">Redirect</button>
+            <button class="page-nav__button" data-page="insights">Insights</button>
+        </nav>
+
+        <main class="page-stack">
+            <section class="page is-active" id="home-page" data-page="home">
+                <div class="page-intro">
+                    <div>
+                        <p class="page-kicker">Overview</p>
+                        <h2>Protection at a glance</h2>
+                    </div>
+                    <p class="page-note">Turn on the essentials here, then fine-tune strict blocking and safe redirects in their own pages.</p>
+                </div>
+
+                <div class="card status-card">
+                    <div class="status-card__header">
+                        <div>
+                            <p class="card-kicker">Live status</p>
+                            <h3 id="status-headline">Protection is standing by</h3>
+                        </div>
+                        <span class="status-dot" id="status-dot"></span>
+                    </div>
+                    <p class="muted" id="status-copy">Enable adult protection, Safe Search, or redirect mode to harden the extension.</p>
+                    <div class="toggle-grid compact">
+                        <label class="toggle-tile">
+                            <span>
+                                <strong>Adult shield</strong>
+                                <small>Blocks adult domains and keyword-based searches.</small>
+                            </span>
+                            <span class="switch">
+                                <input type="checkbox" id="adult-content-toggle">
+                                <span class="switch-track"></span>
+                            </span>
+                        </label>
+                        <label class="toggle-tile">
+                            <span>
+                                <strong>Safe Search</strong>
+                                <small>Forces safer results on Google, Bing, DuckDuckGo, Yahoo, and YouTube.</small>
+                            </span>
+                            <span class="switch">
+                                <input type="checkbox" id="safe-search-toggle">
+                                <span class="switch-track"></span>
+                            </span>
+                        </label>
+                        <label class="toggle-tile">
+                            <span>
+                                <strong>Redirect mode</strong>
+                                <small>Sends blocked matches to a safer destination instead of only showing the block page.</small>
+                            </span>
+                            <span class="switch">
+                                <input type="checkbox" id="redirect-mode-toggle-home">
+                                <span class="switch-track"></span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card reason-card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Anchor</p>
+                            <h3>Why I quit</h3>
+                        </div>
+                        <span class="save-indicator" id="why-save-indicator"></span>
+                    </div>
+                    <textarea id="why-i-quit" placeholder="Write the reason you want to protect your attention and peace."></textarea>
+                </div>
+            </section>
+
+            <section class="page" id="block-page" data-page="block">
+                <div class="page-intro">
+                    <div>
+                        <p class="page-kicker">Strict blocking</p>
+                        <h2>Block entire websites</h2>
+                    </div>
+                    <p class="page-note">This is your BlockSite-style control page for domain blocking, category blocking, and list management.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Add a site</p>
+                            <h3>Manual block list</h3>
+                        </div>
+                    </div>
+                    <div class="site-entry">
+                        <input id="site-input" type="text" placeholder="example.com">
+                        <button id="add-site" class="primary-button">Block site</button>
+                    </div>
+                    <p class="inline-feedback" id="form-feedback"></p>
+                </div>
+
+                <div class="card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Quick presets</p>
+                            <h3>Category blocking</h3>
+                        </div>
+                        <span class="pill-subtle" id="adult-db-count">Adult DB ready</span>
+                    </div>
+                    <div class="toggle-grid">
+                        <label class="toggle-tile featured">
+                            <span>
+                                <strong>Adult content</strong>
+                                <small>Large adult database plus keyword search protection for explicit searches and URLs.</small>
+                            </span>
+                            <span class="switch">
+                                <input type="checkbox" id="adult-content-toggle-block">
+                                <span class="switch-track"></span>
+                            </span>
+                        </label>
+                        <label class="toggle-tile">
+                            <span>
+                                <strong>Gaming</strong>
+                                <small>Blocks common gaming and community sites during work or recovery.</small>
+                            </span>
+                            <span class="switch">
+                                <input type="checkbox" id="gaming-toggle">
+                                <span class="switch-track"></span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Social presets</p>
+                            <h3>Customize social blocking</h3>
+                        </div>
+                        <label class="inline-switch-label">
+                            <span>Master</span>
+                            <span class="switch">
+                                <input type="checkbox" id="social-media-toggle">
+                                <span class="switch-track"></span>
+                            </span>
+                        </label>
+                    </div>
+                    <div id="social-presets" class="preset-grid"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Protected database</p>
+                            <h3>Blocked websites</h3>
+                        </div>
+                        <span class="pill-subtle"><span id="site-count">0</span> protected</span>
+                    </div>
+                    <p class="page-note">
+                        Manual blocks stay editable. Database results only unlock on exact full-domain matches, and explicit search terms are not allowed here.
+                    </p>
+                    <input id="search-blocked-sites" class="search-input" type="search" placeholder="Type a full domain like x.com">
+                    <p class="inline-feedback" id="search-feedback"></p>
+                    <div id="blocked-list" class="blocked-list"></div>
+                </div>
+            </section>
+
+            <section class="page" id="redirect-page" data-page="redirect">
+                <div class="page-intro">
+                    <div>
+                        <p class="page-kicker">Safe redirection</p>
+                        <h2>Redirect risky clicks</h2>
+                    </div>
+                    <p class="page-note">This is your PorNo-style layer. When enabled, blocked matches can be rerouted to a safer place.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Redirect engine</p>
+                            <h3>How blocked matches should resolve</h3>
+                        </div>
+                    </div>
+                    <label class="toggle-row">
+                        <span>
+                            <strong>Enable redirect mode</strong>
+                            <small>When off, blocked items go to the normal blocked page.</small>
+                        </span>
+                        <span class="switch">
+                            <input type="checkbox" id="redirect-mode-toggle">
+                            <span class="switch-track"></span>
+                        </span>
+                    </label>
+
+                    <div class="redirect-settings" id="redirect-settings">
+                        <div class="redirect-preview" id="redirect-preview"></div>
+                    </div>
+                </div>
+
+                <div class="card" id="outlets-card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Wholesome outlets</p>
+                            <h3>Safe places to send yourself</h3>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-group">
+                            <label for="outlet-name">Name</label>
+                            <input id="outlet-name" type="text" placeholder="Quran">
+                        </div>
+                        <div class="field-group field-grow">
+                            <label for="outlet-url">URL</label>
+                            <input id="outlet-url" type="url" placeholder="https://example.com">
+                        </div>
+                    </div>
+                    <div class="button-row">
+                        <button id="add-outlet" class="primary-button">Add outlet</button>
+                    </div>
+                    <p class="inline-feedback" id="outlet-feedback"></p>
+                    <div id="outlets-list" class="outlets-list"></div>
+                </div>
+            </section>
+
+            <section class="page" id="insights-page" data-page="insights">
+                <div class="page-intro">
+                    <div>
+                        <p class="page-kicker">Momentum</p>
+                        <h2>Insights and focus</h2>
+                    </div>
+                    <p class="page-note">Track your saved time, your streak, and keep a lightweight focus timer inside the popup.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="card stat-card hero-stat">
+                        <p class="card-kicker">Total</p>
+                        <h3 id="total-blocks">0</h3>
+                        <p class="muted">All-time blocked attempts</p>
+                    </div>
+                    <div class="card stat-card">
+                        <p class="card-kicker">Today</p>
+                        <h3 id="today-blocks">0</h3>
+                        <p class="muted">Blocked today</p>
+                    </div>
+                    <div class="card stat-card">
+                        <p class="card-kicker">Saved</p>
+                        <h3 id="time-saved">0m</h3>
+                        <p class="muted">Estimated focus preserved</p>
+                    </div>
+                    <div class="card stat-card">
+                        <p class="card-kicker">Streak</p>
+                        <h3 id="streak-days">0</h3>
+                        <p class="muted">Current streak days</p>
+                    </div>
+                    <div class="card stat-card">
+                        <p class="card-kicker">Best streak</p>
+                        <h3 id="best-streak">0</h3>
+                        <p class="muted">Your best run so far</p>
+                    </div>
+                </div>
+
+                <div class="card focus-card">
+                    <div class="card-heading">
+                        <div>
+                            <p class="card-kicker">Focus timer</p>
+                            <h3>Stay deliberate</h3>
+                        </div>
+                    </div>
+                    <div class="focus-layout">
+                        <div class="timer-container">
+                            <svg class="timer-progress" viewBox="0 0 100 100" aria-hidden="true">
+                                <circle class="timer-background" cx="50" cy="50" r="45"></circle>
+                                <circle class="timer-foreground" cx="50" cy="50" r="45"></circle>
+                            </svg>
+                            <div id="focus-timer" class="timer-display">25:00</div>
+                        </div>
+                        <div class="focus-controls">
+                            <div class="field-row">
+                                <div class="field-group">
+                                    <label for="focus-duration">Focus</label>
+                                    <select id="focus-duration">
+                                        <option value="25">25 min</option>
+                                        <option value="40">40 min</option>
+                                        <option value="50">50 min</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="break-duration">Break</label>
+                                    <select id="break-duration">
+                                        <option value="5">5 min</option>
+                                        <option value="10">10 min</option>
+                                        <option value="15">15 min</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="button-row">
+                                <button id="start-focus" class="primary-button">Start focus</button>
+                                <button id="reset-focus" class="ghost-button">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="confetti.min.js"></script>
+    <script src="sites.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>
