@@ -14,6 +14,9 @@ const ADULT_BLOCKLIST_CACHE_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_REDIRECT_SETTINGS = {
     redirectModeEnabled: false
 };
+const DEFAULT_EXTENSION_SETTINGS = {
+    extensionEnabled: true
+};
 const FIXED_QURAN_OUTLET = { name: 'Quran', url: 'https://www.youtube.com/watch?v=bP3AYLevqnI' };
 const CLUMSY_BIRD_REPO_URL = 'https://github.com/ellisonleao/clumsy-bird';
 const CLUMSY_BIRD_LIVE_URL = 'https://ellisonleao.github.io/clumsy-bird/';
@@ -50,6 +53,7 @@ chrome.runtime.onInstalled.addListener((details) => {
             installDate: new Date().toISOString(),
             selectedSocialSites: socialMediaSites.slice(),
             wholesomeOutlets: DEFAULT_WHOLESOME_OUTLETS,
+            ...DEFAULT_EXTENSION_SETTINGS,
             ...DEFAULT_REDIRECT_SETTINGS
         }, async () => {
             await refreshAdultSiteDatabase(true);
@@ -97,7 +101,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         'gamingBlocked',
         'adultSitesCache',
         'selectedSocialSites',
-        'redirectModeEnabled'
+        'redirectModeEnabled',
+        'extensionEnabled'
     ].some((key) => changes[key]);
 
     if (needsRuleRefresh) {
@@ -169,11 +174,22 @@ chrome.declarativeNetRequest.onRuleMatchedDebug?.addListener((info) => {
 
 chrome.runtime.setUninstallURL('https://tally.so/r/wdXdro');
 
-chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesomeOutlets'], async (result) => {
+chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesomeOutlets', 'extensionEnabled'], async (result) => {
     try {
         const sanitizedOutlets = sanitizeWholesomeOutlets(result.wholesomeOutlets);
+        const normalizedExtensionEnabled = result.extensionEnabled !== false;
+        const storagePatch = {};
+
         if (!areOutletsEqual(result.wholesomeOutlets, sanitizedOutlets)) {
-            await chrome.storage.local.set({ wholesomeOutlets: sanitizedOutlets });
+            storagePatch.wholesomeOutlets = sanitizedOutlets;
+        }
+
+        if (typeof result.extensionEnabled !== 'boolean') {
+            storagePatch.extensionEnabled = normalizedExtensionEnabled;
+        }
+
+        if (Object.keys(storagePatch).length > 0) {
+            await chrome.storage.local.set(storagePatch);
         }
 
         if (result.safeSearchEnabled !== false) {
@@ -192,6 +208,16 @@ chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesome
 });
 
 async function rebuildAllRules() {
+    const extensionState = await chrome.storage.local.get(Object.keys(DEFAULT_EXTENSION_SETTINGS));
+    const extensionEnabled = extensionState.extensionEnabled !== false;
+
+    if (!extensionEnabled) {
+        await updateBlockingRules();
+        await updateAdultKeywordRules(false);
+        await updateSafeSearchRules(false);
+        return;
+    }
+
     await updateBlockingRules();
 
     const state = await chrome.storage.local.get(['adultContentBlocked', 'safeSearchEnabled']);
@@ -208,6 +234,7 @@ async function updateBlockingRules() {
         'unblockedSites',
         'adultSitesCache',
         'selectedSocialSites',
+        ...Object.keys(DEFAULT_EXTENSION_SETTINGS),
         ...Object.keys(DEFAULT_REDIRECT_SETTINGS)
     ]);
 
@@ -216,6 +243,7 @@ async function updateBlockingRules() {
     const blockedPageUrl = chrome.runtime.getURL('blocked.html');
     const redirectSettings = getRedirectSettings(state);
     const unblockedSites = new Set((state.unblockedSites || []).map(normalizeDomain));
+    const extensionEnabled = state.extensionEnabled !== false;
 
     const manualSites = (state.manuallyAddedSites || []).map(normalizeDomain).filter(Boolean);
     const adultSites = state.adultContentBlocked ? getAdultSites(state).filter((site) => !unblockedSites.has(site)) : [];
@@ -225,6 +253,14 @@ async function updateBlockingRules() {
     const gamingSitesList = state.gamingBlocked
         ? gamingSites.map(normalizeDomain).filter((site) => !unblockedSites.has(site))
         : [];
+
+    if (!extensionEnabled) {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: Array.from({ length: BLOCK_RULE_ID_END - BLOCK_RULE_ID_START + 1 }, (_, index) => index + BLOCK_RULE_ID_START),
+            addRules: []
+        });
+        return;
+    }
 
     const addDirectSiteRule = (site, matchType, label) => {
         if (!site || unblockedSites.has(site) || ruleId > BLOCK_RULE_ID_END) {
@@ -295,8 +331,13 @@ async function updateBlockingRules() {
 }
 
 async function updateAdultKeywordRules(enabled) {
-    const state = await chrome.storage.local.get(Object.keys(DEFAULT_REDIRECT_SETTINGS));
+    const state = await chrome.storage.local.get([
+        ...Object.keys(DEFAULT_REDIRECT_SETTINGS),
+        ...Object.keys(DEFAULT_EXTENSION_SETTINGS)
+    ]);
     const redirectSettings = getRedirectSettings(state);
+    const extensionEnabled = state.extensionEnabled !== false;
+    const shouldEnable = enabled && extensionEnabled;
     const blockedPageUrl = chrome.runtime.getURL('blocked.html');
     const ruleIdsToRemove = Array.from({ length: 200 }, (_, index) => ADULT_KEYWORD_RULE_ID_START + index);
 
@@ -305,7 +346,7 @@ async function updateAdultKeywordRules(enabled) {
         addRules: []
     });
 
-    if (!enabled) {
+    if (!shouldEnable) {
         return;
     }
 
@@ -331,6 +372,9 @@ async function updateAdultKeywordRules(enabled) {
 
 async function updateSafeSearchRules(enabled) {
     const blockedPageUrl = chrome.runtime.getURL('blocked.html');
+    const extensionState = await chrome.storage.local.get(Object.keys(DEFAULT_EXTENSION_SETTINGS));
+    const extensionEnabled = extensionState.extensionEnabled !== false;
+    const shouldEnable = enabled && extensionEnabled;
     const ruleIdsToRemove = Array.from({ length: 50 }, (_, index) => SAFE_SEARCH_RULE_ID_START + index);
 
     await chrome.declarativeNetRequest.updateDynamicRules({
@@ -338,7 +382,7 @@ async function updateSafeSearchRules(enabled) {
         addRules: []
     });
 
-    if (!enabled) {
+    if (!shouldEnable) {
         return;
     }
 
@@ -537,8 +581,12 @@ async function handleRemoveSite(siteInput) {
 async function validateBlockingRules() {
     const [dynamicRules, storage] = await Promise.all([
         chrome.declarativeNetRequest.getDynamicRules(),
-        chrome.storage.local.get(['blockedSites', 'adultContentBlocked', 'socialMediaBlocked', 'gamingBlocked'])
+        chrome.storage.local.get(['blockedSites', 'adultContentBlocked', 'socialMediaBlocked', 'gamingBlocked', 'extensionEnabled'])
     ]);
+
+    if (storage.extensionEnabled === false) {
+        return;
+    }
 
     const shouldHaveRules =
         (storage.blockedSites || []).length > 0 ||

@@ -192,13 +192,18 @@ const RUNTIME_TEXT = {
         homeSafeSearchDesc: 'Forces safer results on Google, Bing, DuckDuckGo, Yahoo, and YouTube.',
         homeRedirectTitle: 'Redirect mode',
         homeRedirectDesc: 'Sends blocked matches to a safer destination instead of only showing the block page.',
+        extensionDeactivate: 'Deactivate',
+        extensionActivate: 'Activate',
         statusActive: 'Protection is active',
+        statusDisabled: 'Protection is deactivated',
         statusStandby: 'Protection is standing by',
+        statusCopyDisabled: 'All blocking rules are paused until you activate the extension again.',
         statusCopyRedirect: "Redirect mode is on and sends blocked matches to Tirpo's focus page.",
         statusCopyBlocked: 'Blocked matches currently land on the standard block page.',
         heroModeAdult: 'adult shield',
         heroModeSafeSearch: 'safe search',
         heroModeRedirect: 'redirect mode',
+        heroModeDisabled: 'Disabled',
         heroModeBlockingOnly: 'Blocking only',
         heroModeActiveCount: '{count} modes active',
         heroTodayBlocksSuffix: 'blocks',
@@ -377,7 +382,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         addOutlet: document.getElementById('add-outlet'),
         outletFeedback: document.getElementById('outlet-feedback'),
         outletsList: document.getElementById('outlets-list'),
-        popupLangToggle: document.getElementById('popup-lang-toggle')
+        popupLangToggle: document.getElementById('popup-lang-toggle'),
+        extensionToggle: document.getElementById('extension-toggle')
     };
 
     const state = {
@@ -386,7 +392,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         systemBlockedSites: [],
         selectedSocialSites: [],
         wholesomeOutlets: [],
-        language: 'en'
+        language: 'en',
+        extensionEnabled: true
     };
 
     let whySaveTimeout = null;
@@ -414,6 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeWhyIQuit();
     initializeFocusTimer();
     bindGeneralHandlers();
+    bindExtensionHandler();
     bindRedirectHandlers();
     bindOutletHandlers();
     bindLanguageHandlers();
@@ -435,7 +443,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             changes.redirectModeEnabled ||
             changes.adultSitesCache ||
             changes.selectedSocialSites ||
-            changes.wholesomeOutlets
+            changes.wholesomeOutlets ||
+            changes.extensionEnabled
         ) {
             hydrateUi();
         }
@@ -462,6 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             'adultSitesCache',
             'wholesomeOutlets',
             'popupLanguage',
+            'extensionEnabled',
             ...Object.keys(DEFAULT_REDIRECT_SETTINGS)
         ]);
 
@@ -482,6 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sanitizedOutlets = normalizeOutlets(storage.wholesomeOutlets);
         state.wholesomeOutlets = sanitizedOutlets;
         state.language = storage.popupLanguage || 'en';
+        state.extensionEnabled = storage.extensionEnabled !== false;
 
         if (!areOutletsEqual(storage.wholesomeOutlets, sanitizedOutlets)) {
             await chrome.storage.local.set({ wholesomeOutlets: sanitizedOutlets });
@@ -532,6 +543,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.gamingToggle.addEventListener('change', () => handleCategoryToggle('gaming', elements.gamingToggle.checked));
         elements.safeSearchToggle.addEventListener('change', () => {
             chrome.runtime.sendMessage({ type: 'TOGGLE_SAFE_SEARCH', enabled: elements.safeSearchToggle.checked });
+        });
+    }
+
+    function bindExtensionHandler() {
+        elements.extensionToggle.addEventListener('click', async () => {
+            const nextEnabled = !state.extensionEnabled;
+            await chrome.storage.local.set({ extensionEnabled: nextEnabled });
+            await hydrateUi();
         });
     }
 
@@ -934,9 +953,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function getExtensionToggleCopy(rt) {
+        if (state.language === 'ar') {
+            return state.extensionEnabled
+                ? '\u0625\u064a\u0642\u0627\u0641'
+                : '\u062a\u0641\u0639\u064a\u0644';
+        }
+
+        return state.extensionEnabled
+            ? (rt.extensionDeactivate || 'Deactivate')
+            : (rt.extensionActivate || 'Activate');
+    }
+
+    function renderExtensionToggle() {
+        const rt = getRuntimeText();
+        elements.extensionToggle.textContent = getExtensionToggleCopy(rt);
+        elements.extensionToggle.classList.toggle('is-disabled', !state.extensionEnabled);
+        elements.extensionToggle.classList.toggle('is-enabled', state.extensionEnabled);
+        elements.extensionToggle.setAttribute('aria-pressed', String(!state.extensionEnabled));
+    }
+
     function renderHero(storage, redirectSettings) {
         const rt = getRuntimeText();
         const locale = state.language === 'ar' ? 'ar' : 'en-US';
+        renderExtensionToggle();
+
+        if (!state.extensionEnabled) {
+            const disabledMode = state.language === 'ar'
+                ? '\u0645\u0639\u0637\u0644'
+                : (rt.heroModeDisabled || 'Disabled');
+            const disabledHeadline = state.language === 'ar'
+                ? '\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u062d\u0645\u0627\u064a\u0629'
+                : (rt.statusDisabled || 'Protection is deactivated');
+            const disabledCopy = state.language === 'ar'
+                ? '\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u062c\u0645\u064a\u0639 \u0642\u0648\u0627\u0639\u062f \u0627\u0644\u062d\u0638\u0631 \u062d\u062a\u0649 \u062a\u0641\u0639\u0644 \u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.'
+                : (rt.statusCopyDisabled || 'All blocking rules are paused until you activate the extension again.');
+
+            elements.heroMode.textContent = disabledMode;
+            elements.heroMode.title = disabledMode;
+            elements.heroSiteCount.textContent = state.allBlockedSites.length.toLocaleString(locale);
+            elements.heroTodayCount.textContent = `${(storage.blockStats?.todayBlocks || 0).toLocaleString(locale)} ${rt.heroTodayBlocksSuffix}`;
+            elements.statusDot.classList.remove('active');
+            elements.statusHeadline.textContent = disabledHeadline;
+            elements.statusCopy.textContent = disabledCopy;
+            return;
+        }
+
         const activeModes = [];
         if (storage.adultContentBlocked) activeModes.push(rt.heroModeAdult);
         if (storage.safeSearchEnabled) activeModes.push(rt.heroModeSafeSearch);
@@ -977,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.dir = state.language === 'ar' ? 'rtl' : 'ltr';
         document.title = branding.name;
         elements.popupLangToggle.textContent = t.lang;
+        renderExtensionToggle();
         const streakFire = document.querySelector('.streak-fire');
         if (streakFire) {
             streakFire.textContent = rt.streakBadgeLabel;
