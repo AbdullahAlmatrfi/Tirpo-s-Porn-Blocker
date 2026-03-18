@@ -1,14 +1,14 @@
 console.log('Popup script loaded');
 
 const SOCIAL_PRESETS = [
-    { domain: 'youtube.com', label: 'youtube.com', emoji: 'YT', note: 'Video rabbit holes' },
-    { domain: 'facebook.com', label: 'facebook.com', emoji: 'f', note: 'Social feed' },
-    { domain: 'x.com', label: 'x.com', emoji: 'X', note: 'Fast-scroll feed' },
-    { domain: 'instagram.com', label: 'instagram.com', emoji: 'IG', note: 'Social feed' },
-    { domain: 'reddit.com', label: 'reddit.com', emoji: 'R', note: 'Communities and NSFW risk' },
-    { domain: 'tiktok.com', label: 'tiktok.com', emoji: 'TT', note: 'Short-form loops' },
-    { domain: 'pinterest.com', label: 'pinterest.com', emoji: 'P', note: 'Image feed' },
-    { domain: 'snapchat.com', label: 'snapchat.com', emoji: 'S', note: 'Messaging and stories' }
+    { domain: 'youtube.com', label: 'youtube.com', emoji: 'YT', note: 'Video rabbit holes', noteAr: 'محتوى فيديو لا نهائي' },
+    { domain: 'facebook.com', label: 'facebook.com', emoji: 'f', note: 'Social feed', noteAr: 'تدفق اجتماعي' },
+    { domain: 'x.com', label: 'x.com', emoji: 'X', note: 'Fast-scroll feed', noteAr: 'تمرير سريع ومشتت' },
+    { domain: 'instagram.com', label: 'instagram.com', emoji: 'IG', note: 'Social feed', noteAr: 'تدفق اجتماعي' },
+    { domain: 'reddit.com', label: 'reddit.com', emoji: 'R', note: 'Communities and NSFW risk', noteAr: 'مجتمعات ومحتوى حساس' },
+    { domain: 'tiktok.com', label: 'tiktok.com', emoji: 'TT', note: 'Short-form loops', noteAr: 'حلقات قصيرة متواصلة' },
+    { domain: 'pinterest.com', label: 'pinterest.com', emoji: 'P', note: 'Image feed', noteAr: 'تصفح صور مستمر' },
+    { domain: 'snapchat.com', label: 'snapchat.com', emoji: 'S', note: 'Messaging and stories', noteAr: 'رسائل وقصص' }
 ];
 
 const GAMING_SITES = [
@@ -47,7 +47,7 @@ const BLOCKED_QUERY_WORDS = [
 const TRANSLATIONS = {
     en: {
         lang: 'AR',
-        title: 'tirpos corn blocker',
+        title: "Tirpo's Porn Blocker",
         subtitle: 'Strict blocking with optional safe redirects.',
         nav: ['Home', 'Block', 'Redirect', 'Insights'],
         eyebrow: 'Modern protection',
@@ -84,7 +84,7 @@ const TRANSLATIONS = {
         redirectToggleTitle: 'Enable redirect mode',
         redirectToggleDesc: 'When off, blocked items go to the normal blocked page.',
         destinationLabel: 'Destination',
-        destinations: ['tirpos corn blocker focus page', 'Google Safe Search', 'Custom safe URL'],
+        destinations: ["Tirpo's focus page", 'Google Safe Search', 'Custom safe URL'],
         customUrlLabel: 'Custom safe URL',
         outletsKicker: 'Wholesome outlets',
         outletsTitle: 'Safe places to send yourself',
@@ -173,6 +173,165 @@ const TRANSLATIONS = {
     }
 };
 
+const BRANDING = {
+    en: {
+        name: "Tirpo's Porn Blocker",
+        subtitle: 'Strict blocking with optional safe redirects.'
+    },
+    ar: {
+        name: 'مانع المواقع الإباحية الخاص بتيربو',
+        subtitle: 'حظر صارم مع تحويل آمن اختياري.'
+    }
+};
+
+const RUNTIME_TEXT = {
+    en: {
+        homeAdultTitle: 'Adult shield',
+        homeAdultDesc: 'Blocks adult domains and keyword-based searches.',
+        homeSafeSearchTitle: 'Safe Search',
+        homeSafeSearchDesc: 'Forces safer results on Google, Bing, DuckDuckGo, Yahoo, and YouTube.',
+        homeRedirectTitle: 'Redirect mode',
+        homeRedirectDesc: 'Sends blocked matches to a safer destination instead of only showing the block page.',
+        extensionDeactivate: 'Deactivate',
+        extensionActivate: 'Activate',
+        statusActive: 'Protection is active',
+        statusDisabled: 'Protection is deactivated',
+        statusStandby: 'Protection is standing by',
+        statusCopyDisabled: 'All blocking rules are paused until you activate the extension again.',
+        statusCopyRedirect: "Redirect mode is on and sends blocked matches to Tirpo's focus page.",
+        statusCopyBlocked: 'Blocked matches currently land on the standard block page.',
+        heroModeAdult: 'adult shield',
+        heroModeSafeSearch: 'safe search',
+        heroModeRedirect: 'redirect mode',
+        heroModeDisabled: 'Disabled',
+        heroModeBlockingOnly: 'Blocking only',
+        heroModeActiveCount: '{count} modes active',
+        heroTodayBlocksSuffix: 'blocks',
+        streakDayShort: 'd',
+        streakBadgeLabel: 'Fire',
+        minuteShort: 'm',
+        minuteLabel: 'min',
+        hourShort: 'h',
+        dayShort: 'd',
+        redirectPreviewOn: "Redirect mode is active. Destination: Tirpo's focus page.",
+        redirectPreviewOff: "Redirect mode is off. Matches will use Tirpo's block page by default.",
+        outletNameRequired: 'Give the outlet a short name first.',
+        outletFixedError: `Quran and ${FRIENDLY_GAME_NAME} are fixed defaults and cannot be edited.`,
+        outletInvalidUrl: 'Add a valid URL first.',
+        outletLimitError: `You can keep up to ${MAX_WHOLESOME_OUTLETS} outlets total (Quran + ${FRIENDLY_GAME_NAME} + ${MAX_CUSTOM_OUTLETS} custom).`,
+        outletDuplicate: 'This outlet already exists.',
+        outletAdded: '{name} added as a wholesome outlet.',
+        saving: 'Saving...',
+        saved: 'Saved',
+        timerResume: 'Resume',
+        timerPause: 'Pause',
+        timerPauseBreak: 'Pause break',
+        timerStartBreak: 'Start break',
+        timerStartFocus: 'Start focus',
+        notifyFocusTitle: 'Focus session complete',
+        notifyFocusBody: 'Time for a break.',
+        notifyBreakTitle: 'Break complete',
+        notifyBreakBody: 'Ready for another focused session?',
+        addSiteInvalid: 'Please enter a valid domain like example.com.',
+        addSiteCommError: 'Failed to communicate with the extension.',
+        addSiteCouldNotBlock: 'Could not block that site.',
+        addSiteBlocked: '{site} is now blocked.',
+        blockedSummary: 'Blocking {count} sites',
+        hiddenSite: 'hidden-site.example',
+        buttonUnblock: 'Unblock',
+        noSitesBlocked: 'No sites are blocked yet.',
+        explicitNotAllowed: 'Not allowed to manage using explicit terms.',
+        dbLookupLocked: 'Database lookup locked for this query.',
+        exactDomainFound: 'Exact full-domain match found.',
+        typeExactDomain: 'Type the full exact domain to reveal a protected site.',
+        presetReadyToAdd: 'Ready to add to your social preset list',
+        presetAdd: 'Add',
+        presetRemove: 'Remove',
+        outletDefaultTag: 'Default',
+        outletRemove: 'Remove',
+        fixedOutletQuran: 'Quran',
+        fixedOutletGame: 'Focus Bird Game',
+        localFocusGame: 'Local focus game',
+        localExtensionPage: 'Local extension page',
+        adultDomainsReady: '{count} adult domains ready',
+        removedFromBlockList: '{site} was removed from the block list.',
+        dialogHoldTitle: 'Hold that decision',
+        dialogWaitCopy: 'Wait 30 seconds before unblocking. This pause is here on purpose.',
+        dialogUnblock: 'Unblock',
+        dialogCancel: 'Cancel'
+    },
+    ar: {
+        homeAdultTitle: 'درع المحتوى الإباحي',
+        homeAdultDesc: 'يحظر نطاقات المحتوى الإباحي وعمليات البحث بالكلمات الصريحة.',
+        homeSafeSearchTitle: 'البحث الآمن',
+        homeSafeSearchDesc: 'يفرض نتائج أكثر أمانًا على جوجل وبينغ ودك دك جو وياهو ويوتيوب.',
+        homeRedirectTitle: 'وضع التحويل',
+        homeRedirectDesc: 'يحوّل النتائج المحظورة إلى وجهة آمنة بدلًا من عرض صفحة الحظر فقط.',
+        statusActive: 'الحماية مفعلة',
+        statusStandby: 'الحماية في وضع الاستعداد',
+        statusCopyRedirect: 'وضع التحويل مفعّل ويعيد توجيه النتائج المحظورة إلى صفحة تركيز تيربوس.',
+        statusCopyBlocked: 'النتائج المحظورة تذهب حاليًا إلى صفحة الحظر القياسية.',
+        heroModeAdult: 'درع المحتوى الإباحي',
+        heroModeSafeSearch: 'البحث الآمن',
+        heroModeRedirect: 'وضع التحويل',
+        heroModeBlockingOnly: 'حظر فقط',
+        heroModeActiveCount: '{count} أوضاع مفعّلة',
+        heroTodayBlocksSuffix: 'محاولات',
+        streakDayShort: 'ي',
+        streakBadgeLabel: 'سلسلة',
+        minuteShort: 'د',
+        minuteLabel: 'د',
+        hourShort: 'س',
+        dayShort: 'ي',
+        redirectPreviewOn: 'وضع التحويل مفعّل. الوجهة: صفحة تركيز تيربوس.',
+        redirectPreviewOff: 'وضع التحويل متوقف. سيتم استخدام صفحة تيربوس الافتراضية.',
+        outletNameRequired: 'اكتب اسمًا مختصرًا للمخرج أولاً.',
+        outletFixedError: 'القرآن ولعبة الطائر خياران افتراضيان ثابتان ولا يمكن تعديلهما.',
+        outletInvalidUrl: 'أدخل رابطًا صحيحًا أولاً.',
+        outletLimitError: `يمكنك الاحتفاظ بحد أقصى ${MAX_WHOLESOME_OUTLETS} مخارج (القرآن + لعبة الطائر + ${MAX_CUSTOM_OUTLETS} مخصص).`,
+        outletDuplicate: 'هذا المخرج موجود بالفعل.',
+        outletAdded: 'تمت إضافة {name} كمخرج نافع.',
+        saving: 'جارٍ الحفظ...',
+        saved: 'تم الحفظ',
+        timerResume: 'متابعة',
+        timerPause: 'إيقاف مؤقت',
+        timerPauseBreak: 'إيقاف الاستراحة',
+        timerStartBreak: 'ابدأ الاستراحة',
+        timerStartFocus: 'ابدأ التركيز',
+        notifyFocusTitle: 'اكتملت جلسة التركيز',
+        notifyFocusBody: 'حان وقت الاستراحة.',
+        notifyBreakTitle: 'انتهت الاستراحة',
+        notifyBreakBody: 'جاهز لجلسة تركيز جديدة؟',
+        addSiteInvalid: 'أدخل نطاقًا صحيحًا مثل example.com.',
+        addSiteCommError: 'تعذر التواصل مع الإضافة.',
+        addSiteCouldNotBlock: 'تعذر حظر هذا الموقع.',
+        addSiteBlocked: 'تم حظر {site}.',
+        blockedSummary: 'يتم حظر {count} موقع',
+        hiddenSite: 'موقع-مخفي.example',
+        buttonUnblock: 'إلغاء الحظر',
+        noSitesBlocked: 'لا توجد مواقع محظورة بعد.',
+        explicitNotAllowed: 'لا يُسمح بالإدارة باستخدام كلمات صريحة.',
+        dbLookupLocked: 'تم قفل البحث في القاعدة لهذا الاستعلام.',
+        exactDomainFound: 'تم العثور على تطابق مطابق للنطاق الكامل.',
+        typeExactDomain: 'اكتب النطاق الكامل بدقة لإظهار الموقع المحمي.',
+        presetReadyToAdd: 'جاهز للإضافة إلى قائمة الشبكات الاجتماعية',
+        presetAdd: 'إضافة',
+        presetRemove: 'إزالة',
+        outletDefaultTag: 'افتراضي',
+        outletRemove: 'إزالة',
+        fixedOutletQuran: 'القرآن',
+        fixedOutletGame: 'لعبة الطائر',
+        localFocusGame: 'لعبة تركيز محلية',
+        localExtensionPage: 'صفحة محلية داخل الإضافة',
+        adultDomainsReady: '{count} نطاق إباحي جاهز',
+        removedFromBlockList: 'تمت إزالة {site} من قائمة الحظر.',
+        dialogHoldTitle: 'تمهل قبل القرار',
+        dialogWaitCopy: 'انتظر 30 ثانية قبل إلغاء الحظر. هذه المهلة مقصودة.',
+        dialogUnblock: 'إلغاء الحظر',
+        dialogCancel: 'إلغاء'
+    }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     chrome.runtime.connect({ name: 'popup' });
 
@@ -223,7 +382,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         addOutlet: document.getElementById('add-outlet'),
         outletFeedback: document.getElementById('outlet-feedback'),
         outletsList: document.getElementById('outlets-list'),
-        popupLangToggle: document.getElementById('popup-lang-toggle')
+        popupLangToggle: document.getElementById('popup-lang-toggle'),
+        extensionToggle: document.getElementById('extension-toggle')
     };
 
     const state = {
@@ -232,7 +392,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         systemBlockedSites: [],
         selectedSocialSites: [],
         wholesomeOutlets: [],
-        language: 'en'
+        language: 'en',
+        extensionEnabled: true
     };
 
     let whySaveTimeout = null;
@@ -242,10 +403,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isRunning = false;
     let isBreak = false;
 
+    function getRuntimeText() {
+        return RUNTIME_TEXT[state.language] || RUNTIME_TEXT.en;
+    }
+
+    function getBranding() {
+        return BRANDING[state.language] || BRANDING.en;
+    }
+
+    function localizeTemplate(template, values) {
+        return Object.entries(values).reduce((acc, [key, value]) => {
+            return acc.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+        }, template);
+    }
+
     initializeNavigation();
     initializeWhyIQuit();
     initializeFocusTimer();
     bindGeneralHandlers();
+    bindExtensionHandler();
     bindRedirectHandlers();
     bindOutletHandlers();
     bindLanguageHandlers();
@@ -267,7 +443,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             changes.redirectModeEnabled ||
             changes.adultSitesCache ||
             changes.selectedSocialSites ||
-            changes.wholesomeOutlets
+            changes.wholesomeOutlets ||
+            changes.extensionEnabled
         ) {
             hydrateUi();
         }
@@ -294,6 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             'adultSitesCache',
             'wholesomeOutlets',
             'popupLanguage',
+            'extensionEnabled',
             ...Object.keys(DEFAULT_REDIRECT_SETTINGS)
         ]);
 
@@ -314,6 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sanitizedOutlets = normalizeOutlets(storage.wholesomeOutlets);
         state.wholesomeOutlets = sanitizedOutlets;
         state.language = storage.popupLanguage || 'en';
+        state.extensionEnabled = storage.extensionEnabled !== false;
 
         if (!areOutletsEqual(storage.wholesomeOutlets, sanitizedOutlets)) {
             await chrome.storage.local.set({ wholesomeOutlets: sanitizedOutlets });
@@ -367,6 +546,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    function bindExtensionHandler() {
+        elements.extensionToggle.addEventListener('click', async () => {
+            const nextEnabled = !state.extensionEnabled;
+            await chrome.storage.local.set({ extensionEnabled: nextEnabled });
+            await hydrateUi();
+        });
+    }
+
     function bindRedirectHandlers() {
         const onRedirectToggle = async (enabled) => {
             elements.redirectToggle.checked = enabled;
@@ -382,32 +569,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function bindOutletHandlers() {
         elements.addOutlet.addEventListener('click', async () => {
+            const rt = getRuntimeText();
             const name = (elements.outletName.value || '').trim();
             const rawUrl = (elements.outletUrl.value || '').trim();
             if (!name) {
-                setFeedback(elements.outletFeedback, 'Give the outlet a short name first.', 'error');
+                setFeedback(elements.outletFeedback, rt.outletNameRequired, 'error');
                 return;
             }
 
             if (isFixedOutlet({ name, url: '' })) {
-                setFeedback(elements.outletFeedback, `Quran and ${FRIENDLY_GAME_NAME} are fixed defaults and cannot be edited.`, 'error');
+                setFeedback(elements.outletFeedback, rt.outletFixedError, 'error');
                 return;
             }
 
             const url = normalizeUrl(rawUrl);
             if (!rawUrl || !url) {
-                setFeedback(elements.outletFeedback, 'Add a valid URL first.', 'error');
+                setFeedback(elements.outletFeedback, rt.outletInvalidUrl, 'error');
                 return;
             }
 
             if (state.wholesomeOutlets.length >= MAX_WHOLESOME_OUTLETS) {
-                setFeedback(elements.outletFeedback, `You can keep up to ${MAX_WHOLESOME_OUTLETS} outlets total (Quran + ${FRIENDLY_GAME_NAME} + ${MAX_CUSTOM_OUTLETS} custom).`, 'error');
+                setFeedback(elements.outletFeedback, rt.outletLimitError, 'error');
                 return;
             }
 
             const duplicate = state.wholesomeOutlets.some((outlet) => outlet.url === url || outlet.name.toLowerCase() === name.toLowerCase());
             if (duplicate) {
-                setFeedback(elements.outletFeedback, 'This outlet already exists.', 'error');
+                setFeedback(elements.outletFeedback, rt.outletDuplicate, 'error');
                 return;
             }
 
@@ -415,7 +603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await chrome.storage.local.set({ wholesomeOutlets });
             elements.outletName.value = '';
             elements.outletUrl.value = '';
-            setFeedback(elements.outletFeedback, `${name} added as a wholesome outlet.`, 'success');
+            setFeedback(elements.outletFeedback, localizeTemplate(rt.outletAdded, { name }), 'success');
         });
     }
 
@@ -423,19 +611,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.popupLangToggle.addEventListener('click', async () => {
             state.language = state.language === 'en' ? 'ar' : 'en';
             await chrome.storage.local.set({ popupLanguage: state.language });
-            applyLanguage();
+            await hydrateUi();
         });
     }
 
     function initializeWhyIQuit() {
         elements.whyTextarea.addEventListener('input', () => {
+            const rt = getRuntimeText();
             clearTimeout(whySaveTimeout);
-            elements.whySaveIndicator.textContent = 'Saving...';
+            elements.whySaveIndicator.textContent = rt.saving;
             whySaveTimeout = setTimeout(() => {
                 chrome.storage.local.set({ whyIQuit: elements.whyTextarea.value.trim() }, () => {
-                    elements.whySaveIndicator.textContent = 'Saved';
+                    elements.whySaveIndicator.textContent = rt.saved;
                     setTimeout(() => {
-                        if (elements.whySaveIndicator.textContent === 'Saved') {
+                        if (elements.whySaveIndicator.textContent === rt.saved) {
                             elements.whySaveIndicator.textContent = '';
                         }
                     }, 1500);
@@ -449,10 +638,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.timerForeground.style.strokeDasharray = String(circumference);
 
         elements.startFocus.addEventListener('click', () => {
+            const rt = getRuntimeText();
             if (isRunning) {
                 clearInterval(timer);
                 isRunning = false;
-                elements.startFocus.textContent = 'Resume';
+                elements.startFocus.textContent = rt.timerResume;
                 return;
             }
 
@@ -462,7 +652,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             isRunning = true;
-            elements.startFocus.textContent = isBreak ? 'Pause break' : 'Pause';
+            elements.startFocus.textContent = isBreak ? rt.timerPauseBreak : rt.timerPause;
 
             timer = setInterval(() => {
                 timeLeft -= 1;
@@ -475,14 +665,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     isBreak = true;
                     timeLeft = parseInt(elements.breakDuration.value, 10) * 60;
                     totalSeconds = timeLeft;
-                    elements.startFocus.textContent = 'Start break';
-                    showNotification('Focus session complete', 'Time for a break.');
+                    elements.startFocus.textContent = rt.timerStartBreak;
+                    showNotification(rt.notifyFocusTitle, rt.notifyFocusBody);
                 } else {
                     isBreak = false;
                     timeLeft = parseInt(elements.focusDuration.value, 10) * 60;
                     totalSeconds = timeLeft;
-                    elements.startFocus.textContent = 'Start focus';
-                    showNotification('Break complete', 'Ready for another focused session?');
+                    elements.startFocus.textContent = rt.timerStartFocus;
+                    showNotification(rt.notifyBreakTitle, rt.notifyBreakBody);
                 }
                 updateTimerDisplay();
             }, 1000);
@@ -494,12 +684,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         function resetTimer() {
+            const rt = getRuntimeText();
             clearInterval(timer);
             isRunning = false;
             isBreak = false;
             timeLeft = parseInt(elements.focusDuration.value, 10) * 60;
             totalSeconds = timeLeft;
-            elements.startFocus.textContent = 'Start focus';
+            elements.startFocus.textContent = rt.timerStartFocus;
             updateTimerDisplay();
         }
 
@@ -565,27 +756,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function addSite() {
+        const rt = getRuntimeText();
         const site = normalizeDomain(elements.siteInput.value);
         if (!isValidDomain(site)) {
-            setFeedback(elements.feedback, 'Please enter a valid domain like example.com.', 'error');
+            setFeedback(elements.feedback, rt.addSiteInvalid, 'error');
             return;
         }
 
         chrome.runtime.sendMessage({ type: 'ADD_MANUAL_SITE', site }, (response) => {
             if (chrome.runtime.lastError) {
-                setFeedback(elements.feedback, 'Failed to communicate with the extension.', 'error');
+                setFeedback(elements.feedback, rt.addSiteCommError, 'error');
                 return;
             }
             if (!response?.success) {
-                setFeedback(elements.feedback, response?.reason || 'Could not block that site.', 'error');
+                setFeedback(elements.feedback, response?.reason || rt.addSiteCouldNotBlock, 'error');
                 return;
             }
             elements.siteInput.value = '';
-            setFeedback(elements.feedback, `${site} is now blocked.`, 'success');
+            setFeedback(elements.feedback, localizeTemplate(rt.addSiteBlocked, { site }), 'success');
         });
     }
 
     function renderProtectedSearch() {
+        const rt = getRuntimeText();
         elements.blockedList.innerHTML = '';
         elements.siteCount.textContent = String(state.allBlockedSites.length);
 
@@ -594,7 +787,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const summary = document.createElement('div');
         summary.className = 'blocked-summary';
-        summary.textContent = `Blocking ${state.allBlockedSites.length.toLocaleString()} sites`;
+        summary.textContent = localizeTemplate(rt.blockedSummary, {
+            count: state.allBlockedSites.length.toLocaleString(state.language === 'ar' ? 'ar' : 'en-US')
+        });
         elements.blockedList.appendChild(summary);
         elements.searchFeedback.textContent = '';
         elements.searchFeedback.className = 'inline-feedback';
@@ -608,40 +803,41 @@ document.addEventListener('DOMContentLoaded', async () => {
                 for (let index = 0; index < Math.min(3, state.systemBlockedSites.length); index += 1) {
                     const blurred = document.createElement('div');
                     blurred.className = 'blocked-blurred';
-                    blurred.innerHTML = '<strong>hidden-site.example</strong><button type="button">Unblock</button>';
+                    blurred.innerHTML = `<strong>${rt.hiddenSite}</strong><button type="button">${rt.buttonUnblock}</button>`;
                     elements.blockedList.appendChild(blurred);
                 }
             }
 
             if (state.manualSites.length === 0 && state.systemBlockedSites.length === 0) {
-                appendEmptyState('No sites are blocked yet.');
+                appendEmptyState(rt.noSitesBlocked);
             }
             return;
         }
 
         if (hasExplicitTerm) {
-            setFeedback(elements.searchFeedback, 'Not allowed to manage using explicit terms.', 'error');
-            appendEmptyState('Database lookup locked for this query.');
+            setFeedback(elements.searchFeedback, rt.explicitNotAllowed, 'error');
+            appendEmptyState(rt.dbLookupLocked);
             return;
         }
 
         const exactMatch = state.allBlockedSites.find((site) => site === query);
         if (exactMatch) {
             elements.blockedList.appendChild(createBlockedItem(exactMatch));
-            setFeedback(elements.searchFeedback, 'Exact full-domain match found.', 'success');
+            setFeedback(elements.searchFeedback, rt.exactDomainFound, 'success');
             return;
         }
 
-        setFeedback(elements.searchFeedback, 'Type the full exact domain to reveal a protected site.', 'error');
+        setFeedback(elements.searchFeedback, rt.typeExactDomain, 'error');
         for (let index = 0; index < 2; index += 1) {
             const blurred = document.createElement('div');
             blurred.className = 'blocked-blurred';
-            blurred.innerHTML = '<strong>hidden-site.example</strong><button type="button">Unblock</button>';
+            blurred.innerHTML = `<strong>${rt.hiddenSite}</strong><button type="button">${rt.buttonUnblock}</button>`;
             elements.blockedList.appendChild(blurred);
         }
     }
 
     function renderSocialPresets() {
+        const rt = getRuntimeText();
         elements.socialPresets.innerHTML = '';
         const selectedSet = new Set(state.selectedSocialSites);
         const blockedSet = new Set(state.allBlockedSites);
@@ -656,9 +852,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="preset-logo">${preset.emoji}</div>
                 <div class="preset-meta">
                     <strong>${preset.label}</strong>
-                    <small>${isSelected ? preset.note : 'Ready to add to your social preset list'}</small>
+                    <small>${isSelected ? (state.language === 'ar' ? preset.noteAr : preset.note) : rt.presetReadyToAdd}</small>
                 </div>
-                <button class="preset-action ${isBlocked ? 'remove' : 'add'}" type="button">${isBlocked ? 'Remove' : 'Add'}</button>
+                <button class="preset-action ${isBlocked ? 'remove' : 'add'}" type="button">${isBlocked ? rt.presetRemove : rt.presetAdd}</button>
             `;
 
             item.querySelector('button').addEventListener('click', () => toggleSocialPreset(preset.domain));
@@ -667,18 +863,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderOutlets() {
+        const rt = getRuntimeText();
         elements.outletsList.innerHTML = '';
         state.wholesomeOutlets.forEach((outlet) => {
             const isFixed = isFixedOutlet(outlet);
+            const displayName = normalizeUrl(outlet.url) === normalizeUrl(FIXED_QURAN_OUTLET.url)
+                ? rt.fixedOutletQuran
+                : (normalizeUrl(outlet.url) === normalizeUrl(FIXED_GAME_OUTLET.url) ? rt.fixedOutletGame : outlet.name);
             const item = document.createElement('div');
             item.className = 'outlet-item';
             item.innerHTML = `
-                <div class="outlet-logo">${outlet.name.charAt(0).toUpperCase()}</div>
+                <div class="outlet-logo">${displayName.charAt(0).toUpperCase()}</div>
                 <div class="outlet-meta">
-                    <strong>${outlet.name}</strong>
-                    <small>${outlet.url}</small>
+                    <strong>${displayName}</strong>
+                    <small title="${outlet.url}">${formatOutletUrlForDisplay(outlet.url)}</small>
                 </div>
-                ${isFixed ? '<span class="outlet-fixed-tag">Default</span>' : '<button class="outlet-action remove" type="button">Remove</button>'}
+                ${isFixed ? `<span class="outlet-fixed-tag">${rt.outletDefaultTag}</span>` : `<button class="outlet-action remove" type="button">${rt.outletRemove}</button>`}
             `;
 
             if (!isFixed) {
@@ -691,12 +891,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    function formatOutletUrlForDisplay(rawUrl) {
+        const rt = getRuntimeText();
+        if (!rawUrl) return '';
+
+        if (rawUrl === CLUMSY_BIRD_LOCAL_URL) {
+            return rt.localFocusGame;
+        }
+
+        try {
+            const parsed = new URL(rawUrl);
+            if (parsed.protocol === 'chrome-extension:') {
+                return rt.localExtensionPage;
+            }
+
+            const host = parsed.hostname.replace(/^www\./i, '');
+            const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
+            const compact = `${host}${path}`;
+            return compact.length > 42 ? `${compact.slice(0, 41)}...` : compact;
+        } catch (error) {
+            return rawUrl.length > 42 ? `${rawUrl.slice(0, 41)}...` : rawUrl;
+        }
+    }
+
     function createBlockedItem(site) {
+        const rt = getRuntimeText();
         const item = document.createElement('div');
         item.className = 'blocked-item';
         item.innerHTML = `
             <div><strong>${site}</strong></div>
-            <button type="button">Unblock</button>
+            <button type="button">${rt.buttonUnblock}</button>
         `;
         item.querySelector('button').addEventListener('click', () => {
             showUnblockConfirmation(() => removeSite(site), () => {});
@@ -712,52 +936,117 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderStats(storage) {
+        const rt = getRuntimeText();
+        const locale = state.language === 'ar' ? 'ar' : 'en-US';
         const stats = storage.blockStats || { totalBlocks: 0, todayBlocks: 0 };
-        elements.totalBlocks.textContent = (stats.totalBlocks || 0).toLocaleString();
-        elements.todayBlocks.textContent = (stats.todayBlocks || 0).toLocaleString();
+        elements.totalBlocks.textContent = (stats.totalBlocks || 0).toLocaleString(locale);
+        elements.todayBlocks.textContent = (stats.todayBlocks || 0).toLocaleString(locale);
         elements.timeSaved.textContent = formatTimeSaved((stats.totalBlocks || 0) * 5);
-        elements.streakDays.textContent = String(storage.streakDays || 0);
-        elements.bestStreak.textContent = String(storage.bestStreak || 0);
+        elements.streakDays.textContent = Number(storage.streakDays || 0).toLocaleString(locale);
+        elements.bestStreak.textContent = Number(storage.bestStreak || 0).toLocaleString(locale);
         if (storage.streakDays > 0) {
             elements.streakBadge.hidden = false;
-            elements.streakBadgeCount.textContent = `${storage.streakDays}d`;
+            const days = Number(storage.streakDays || 0).toLocaleString(state.language === 'ar' ? 'ar' : 'en-US');
+            elements.streakBadgeCount.textContent = `${days}${rt.streakDayShort}`;
         } else {
             elements.streakBadge.hidden = true;
         }
     }
 
-    function renderHero(storage, redirectSettings) {
-        const activeModes = [];
-        if (storage.adultContentBlocked) activeModes.push('adult shield');
-        if (storage.safeSearchEnabled) activeModes.push('safe search');
-        if (redirectSettings.redirectModeEnabled) activeModes.push('redirect mode');
+    function getExtensionToggleCopy(rt) {
+        if (state.language === 'ar') {
+            return state.extensionEnabled
+                ? '\u0625\u064a\u0642\u0627\u0641'
+                : '\u062a\u0641\u0639\u064a\u0644';
+        }
 
-        elements.heroMode.textContent = activeModes.length ? activeModes.join(' + ') : 'Blocking only';
-        elements.heroSiteCount.textContent = state.allBlockedSites.length.toLocaleString();
-        elements.heroTodayCount.textContent = `${(storage.blockStats?.todayBlocks || 0).toLocaleString()} blocks`;
+        return state.extensionEnabled
+            ? (rt.extensionDeactivate || 'Deactivate')
+            : (rt.extensionActivate || 'Activate');
+    }
+
+    function renderExtensionToggle() {
+        const rt = getRuntimeText();
+        elements.extensionToggle.textContent = getExtensionToggleCopy(rt);
+        elements.extensionToggle.classList.toggle('is-disabled', !state.extensionEnabled);
+        elements.extensionToggle.classList.toggle('is-enabled', state.extensionEnabled);
+        elements.extensionToggle.setAttribute('aria-pressed', String(!state.extensionEnabled));
+    }
+
+    function renderHero(storage, redirectSettings) {
+        const rt = getRuntimeText();
+        const locale = state.language === 'ar' ? 'ar' : 'en-US';
+        renderExtensionToggle();
+
+        if (!state.extensionEnabled) {
+            const disabledMode = state.language === 'ar'
+                ? '\u0645\u0639\u0637\u0644'
+                : (rt.heroModeDisabled || 'Disabled');
+            const disabledHeadline = state.language === 'ar'
+                ? '\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u062d\u0645\u0627\u064a\u0629'
+                : (rt.statusDisabled || 'Protection is deactivated');
+            const disabledCopy = state.language === 'ar'
+                ? '\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u062c\u0645\u064a\u0639 \u0642\u0648\u0627\u0639\u062f \u0627\u0644\u062d\u0638\u0631 \u062d\u062a\u0649 \u062a\u0641\u0639\u0644 \u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.'
+                : (rt.statusCopyDisabled || 'All blocking rules are paused until you activate the extension again.');
+
+            elements.heroMode.textContent = disabledMode;
+            elements.heroMode.title = disabledMode;
+            elements.heroSiteCount.textContent = state.allBlockedSites.length.toLocaleString(locale);
+            elements.heroTodayCount.textContent = `${(storage.blockStats?.todayBlocks || 0).toLocaleString(locale)} ${rt.heroTodayBlocksSuffix}`;
+            elements.statusDot.classList.remove('active');
+            elements.statusHeadline.textContent = disabledHeadline;
+            elements.statusCopy.textContent = disabledCopy;
+            return;
+        }
+
+        const activeModes = [];
+        if (storage.adultContentBlocked) activeModes.push(rt.heroModeAdult);
+        if (storage.safeSearchEnabled) activeModes.push(rt.heroModeSafeSearch);
+        if (redirectSettings.redirectModeEnabled) activeModes.push(rt.heroModeRedirect);
+
+        if (activeModes.length === 0) {
+            elements.heroMode.textContent = rt.heroModeBlockingOnly;
+        } else if (activeModes.length === 1) {
+            elements.heroMode.textContent = activeModes[0];
+        } else {
+            elements.heroMode.textContent = localizeTemplate(rt.heroModeActiveCount, {
+                count: Number(activeModes.length).toLocaleString(locale)
+            });
+        }
+        elements.heroMode.title = activeModes.join(' + ');
+        elements.heroSiteCount.textContent = state.allBlockedSites.length.toLocaleString(locale);
+        elements.heroTodayCount.textContent = `${(storage.blockStats?.todayBlocks || 0).toLocaleString(locale)} ${rt.heroTodayBlocksSuffix}`;
         const protectionActive = activeModes.length > 0 || state.allBlockedSites.length > 0;
         elements.statusDot.classList.toggle('active', protectionActive);
-        elements.statusHeadline.textContent = protectionActive ? 'Protection is active' : 'Protection is standing by';
+        elements.statusHeadline.textContent = protectionActive ? rt.statusActive : rt.statusStandby;
         elements.statusCopy.textContent = redirectSettings.redirectModeEnabled
-            ? 'Redirect mode is on and sends blocked matches to the tirpos corn blocker focus page.'
-            : 'Blocked matches currently land on the standard block page.';
+            ? rt.statusCopyRedirect
+            : rt.statusCopyBlocked;
     }
 
     function renderRedirectPreview(redirectSettings) {
+        const rt = getRuntimeText();
         elements.redirectPreview.textContent = redirectSettings.redirectModeEnabled
-            ? 'Redirect mode is active. Destination: tirpos corn blocker focus page.'
-            : 'Redirect mode is off. Matches will use the tirpos corn blocker page by default.';
+            ? rt.redirectPreviewOn
+            : rt.redirectPreviewOff;
     }
 
     function applyLanguage() {
         const t = TRANSLATIONS[state.language] || TRANSLATIONS.en;
+        const rt = getRuntimeText();
+        const branding = getBranding();
         document.documentElement.lang = state.language;
         document.body.dir = state.language === 'ar' ? 'rtl' : 'ltr';
-        document.title = t.title;
+        document.title = branding.name;
         elements.popupLangToggle.textContent = t.lang;
+        renderExtensionToggle();
+        const streakFire = document.querySelector('.streak-fire');
+        if (streakFire) {
+            streakFire.textContent = rt.streakBadgeLabel;
+        }
         document.querySelector('.eyebrow').textContent = t.eyebrow;
-        document.querySelector('.brand-copy h1').textContent = t.title;
-        document.querySelector('.hero-subtitle').textContent = t.subtitle;
+        document.querySelector('.brand-copy h1').textContent = branding.name;
+        document.querySelector('.hero-subtitle').textContent = branding.subtitle;
         elements.navButtons.forEach((button, index) => {
             button.textContent = t.nav[index];
         });
@@ -768,11 +1057,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('#home-page h2').textContent = t.overviewTitle;
         document.querySelector('#home-page .page-note').textContent = t.overviewNote;
         document.querySelector('.status-card .card-kicker').textContent = t.liveStatusKicker;
+        document.querySelector('#adult-content-toggle').closest('.toggle-tile').querySelector('strong').textContent = rt.homeAdultTitle;
+        document.querySelector('#adult-content-toggle').closest('.toggle-tile').querySelector('small').textContent = rt.homeAdultDesc;
+        document.querySelector('#safe-search-toggle').closest('.toggle-tile').querySelector('strong').textContent = rt.homeSafeSearchTitle;
+        document.querySelector('#safe-search-toggle').closest('.toggle-tile').querySelector('small').textContent = rt.homeSafeSearchDesc;
+        document.querySelector('#redirect-mode-toggle-home').closest('.toggle-tile').querySelector('strong').textContent = rt.homeRedirectTitle;
+        document.querySelector('#redirect-mode-toggle-home').closest('.toggle-tile').querySelector('small').textContent = rt.homeRedirectDesc;
         document.querySelector('.reason-card .card-kicker').textContent = t.anchorKicker;
         document.querySelector('.reason-card h3').textContent = t.anchorTitle;
         document.querySelector('#block-page .page-kicker').textContent = t.strictKicker;
         document.querySelector('#block-page h2').textContent = t.strictTitle;
-        document.querySelector('#block-page .page-note').textContent = t.strictNote;
+        document.querySelector('#block-page .page-note').textContent = state.language === 'ar'
+            ? 'هذه صفحة التحكم لحظر النطاقات والفئات وإدارة القائمة.'
+            : t.strictNote;
         document.querySelectorAll('#block-page .card-kicker')[0].textContent = t.addSiteKicker;
         document.querySelectorAll('#block-page .card-heading h3')[0].textContent = t.addSiteTitle;
         elements.addSiteButton.textContent = t.blockSiteButton;
@@ -790,7 +1087,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('#block-page .page-note')[1].textContent = t.dbNote;
         document.querySelector('#redirect-page .page-kicker').textContent = t.redirectKicker;
         document.querySelector('#redirect-page h2').textContent = t.redirectTitle;
-        document.querySelector('#redirect-page .page-note').textContent = t.redirectNote;
+        document.querySelector('#redirect-page .page-note').textContent = state.language === 'ar'
+            ? 'عند التفعيل يتم تحويل النتائج المحظورة إلى وجهة آمنة.'
+            : t.redirectNote;
         document.querySelectorAll('#redirect-page .card-kicker')[0].textContent = t.redirectEngineKicker;
         document.querySelectorAll('#redirect-page .card-heading h3')[0].textContent = t.redirectEngineTitle;
         document.querySelector('.toggle-row strong').textContent = t.redirectToggleTitle;
@@ -813,26 +1112,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.focus-card h3').textContent = t.focusTimerTitle;
         document.querySelector('label[for="focus-duration"]').textContent = t.focusLabel;
         document.querySelector('label[for="break-duration"]').textContent = t.breakLabel;
-        elements.startFocus.textContent = t.startFocus;
+        if (isRunning) {
+            elements.startFocus.textContent = isBreak ? rt.timerPauseBreak : rt.timerPause;
+        } else {
+            elements.startFocus.textContent = isBreak ? rt.timerStartBreak : rt.timerStartFocus;
+        }
         elements.resetFocus.textContent = t.reset;
         elements.whyTextarea.placeholder = t.whyPlaceholder;
         elements.siteInput.placeholder = t.sitePlaceholder;
         elements.searchInput.placeholder = t.searchPlaceholder;
         elements.outletName.placeholder = t.outletNamePlaceholder;
         elements.outletUrl.placeholder = t.outletUrlPlaceholder;
+        document.querySelectorAll('#focus-duration option').forEach((option) => {
+            option.textContent = `${option.value} ${rt.minuteLabel}`;
+        });
+        document.querySelectorAll('#break-duration option').forEach((option) => {
+            option.textContent = `${option.value} ${rt.minuteLabel}`;
+        });
     }
 
     function updateAdultDatabaseBadge(adultSitesCache) {
+        const rt = getRuntimeText();
         const count = Array.isArray(adultSitesCache) && adultSitesCache.length
             ? adultSitesCache.length
             : (Array.isArray(uniqueAdultSites) ? uniqueAdultSites.length : 0);
-        elements.adultDbCount.textContent = `${count.toLocaleString()} adult domains ready`;
+        elements.adultDbCount.textContent = localizeTemplate(rt.adultDomainsReady, {
+            count: count.toLocaleString(state.language === 'ar' ? 'ar' : 'en-US')
+        });
     }
 
     function removeSite(site) {
+        const rt = getRuntimeText();
         chrome.runtime.sendMessage({ type: 'REMOVE_SITE', site }, (response) => {
             if (chrome.runtime.lastError || !response?.success) return;
-            setFeedback(elements.feedback, `${site} was removed from the block list.`, 'success');
+            setFeedback(elements.feedback, localizeTemplate(rt.removedFromBlockList, { site }), 'success');
         });
     }
 
@@ -971,15 +1284,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function formatTimeSaved(minutes) {
-        if (minutes < 60) return `${minutes}m`;
+        const rt = getRuntimeText();
+        const locale = state.language === 'ar' ? 'ar' : 'en-US';
+        if (minutes < 60) return `${Number(minutes).toLocaleString(locale)}${rt.minuteShort}`;
         const hours = Math.floor(minutes / 60);
         if (hours < 24) {
             const remainingMinutes = minutes % 60;
-            return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+            const h = Number(hours).toLocaleString(locale);
+            const m = Number(remainingMinutes).toLocaleString(locale);
+            return remainingMinutes ? `${h}${rt.hourShort} ${m}${rt.minuteShort}` : `${h}${rt.hourShort}`;
         }
         const days = Math.floor(hours / 24);
         const remainingHours = hours % 24;
-        return remainingHours ? `${days}d ${remainingHours}h` : `${days}d`;
+        const d = Number(days).toLocaleString(locale);
+        const h = Number(remainingHours).toLocaleString(locale);
+        return remainingHours ? `${d}${rt.dayShort} ${h}${rt.hourShort}` : `${d}${rt.dayShort}`;
     }
 
     function showNotification(title, message) {
@@ -992,16 +1311,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function showUnblockConfirmation(onConfirm, onCancel) {
+        const rt = getRuntimeText();
         const dialog = document.createElement('div');
         dialog.className = 'confirmation-dialog';
+        const locale = state.language === 'ar' ? 'ar' : 'en-US';
+        const initialSeconds = Number(30).toLocaleString(locale);
         dialog.innerHTML = `
             <div class="dialog-content">
-                <h3>Hold that decision</h3>
-                <p>Wait 30 seconds before unblocking. This pause is here on purpose.</p>
-                <div class="timer">30</div>
+                <h3>${rt.dialogHoldTitle}</h3>
+                <p>${rt.dialogWaitCopy}</p>
+                <div class="timer">${initialSeconds}</div>
                 <div class="dialog-actions">
-                    <button class="dialog-confirm" disabled>Unblock</button>
-                    <button class="dialog-cancel">Cancel</button>
+                    <button class="dialog-confirm" disabled>${rt.dialogUnblock}</button>
+                    <button class="dialog-cancel">${rt.dialogCancel}</button>
                 </div>
             </div>
         `;
@@ -1013,7 +1335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const countdown = setInterval(() => {
             secondsLeft -= 1;
-            timerLabel.textContent = String(secondsLeft);
+            timerLabel.textContent = Number(secondsLeft).toLocaleString(locale);
             if (secondsLeft <= 0) {
                 clearInterval(countdown);
                 confirmButton.disabled = false;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>tirpos corn blocker</title>
+    <title>Tirpo's Porn Blocker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -40,13 +40,75 @@
         .orb {
             position: fixed;
             border-radius: 999px;
-            background: rgba(14, 165, 233, 0.1);
-            filter: blur(2px);
+            background:
+                radial-gradient(circle at 32% 28%, rgba(186, 230, 253, 0.78) 0%, rgba(125, 211, 252, 0.46) 28%, rgba(14, 165, 233, 0.2) 62%, rgba(14, 165, 233, 0.07) 78%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow:
+                inset 0 12px 34px rgba(255, 255, 255, 0.34),
+                0 18px 48px rgba(14, 165, 233, 0.24);
+            filter: blur(0.8px);
+            pointer-events: none;
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
+            opacity: 0.95;
         }
 
-        .orb-1 { width: 320px; height: 320px; top: -80px; left: -60px; }
-        .orb-2 { width: 220px; height: 220px; right: 10%; top: 22%; }
-        .orb-3 { width: 360px; height: 360px; right: -120px; bottom: -80px; }
+        .orb-1 {
+            width: 320px;
+            height: 320px;
+            top: -80px;
+            left: -60px;
+            animation: orbDriftOne 28s cubic-bezier(0.42, 0.08, 0.58, 0.95) infinite alternate, orbGlow 11s ease-in-out infinite;
+        }
+
+        .orb-2 {
+            width: 220px;
+            height: 220px;
+            right: 10%;
+            top: 22%;
+            animation: orbDriftTwo 34s cubic-bezier(0.42, 0.08, 0.58, 0.95) infinite alternate, orbGlow 13s ease-in-out -4s infinite;
+        }
+
+        .orb-3 {
+            width: 360px;
+            height: 360px;
+            right: -120px;
+            bottom: -80px;
+            animation: orbDriftThree 40s cubic-bezier(0.42, 0.08, 0.58, 0.95) infinite alternate, orbGlow 15s ease-in-out -7s infinite;
+        }
+
+        @keyframes orbDriftOne {
+            0% { transform: translate3d(0, 0, 0) scale(1); }
+            35% { transform: translate3d(14px, 10px, 0) scale(1.025); }
+            70% { transform: translate3d(22px, 18px, 0) scale(1.01); }
+            100% { transform: translate3d(30px, 24px, 0) scale(0.99); }
+        }
+
+        @keyframes orbDriftTwo {
+            0% { transform: translate3d(0, 0, 0) scale(1); }
+            30% { transform: translate3d(-10px, 8px, 0) scale(1.02); }
+            65% { transform: translate3d(-24px, 20px, 0) scale(0.99); }
+            100% { transform: translate3d(-34px, 28px, 0) scale(1.03); }
+        }
+
+        @keyframes orbDriftThree {
+            0% { transform: translate3d(0, 0, 0) scale(1); }
+            40% { transform: translate3d(-12px, -8px, 0) scale(1.02); }
+            70% { transform: translate3d(-20px, -14px, 0) scale(1.01); }
+            100% { transform: translate3d(-28px, -22px, 0) scale(0.985); }
+        }
+
+        @keyframes orbGlow {
+            0% { opacity: 0.82; }
+            50% { opacity: 1; }
+            100% { opacity: 0.86; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .orb {
+                animation: none !important;
+            }
+        }
 
         .shell {
             width: min(620px, 100%);
@@ -65,13 +127,17 @@
             height: 72px;
             border-radius: 22px;
             margin: 0 auto 16px;
-            display: grid;
-            place-items: center;
-            background: linear-gradient(135deg, #0284c7, #0ea5e9);
-            color: white;
-            font-size: 34px;
-            font-weight: 800;
-            box-shadow: 0 18px 32px rgba(14, 165, 233, 0.24);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.65);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 18px 32px rgba(14, 165, 233, 0.2);
+        }
+
+        .badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         h1 {
@@ -148,10 +214,22 @@
             margin-bottom: 4px;
         }
 
-        .action small,
-        .outlet small {
+        .action small {
             color: var(--muted);
             line-height: 1.5;
+        }
+
+        .outlet small {
+            display: block;
+            margin-top: 2px;
+            max-width: 100%;
+            color: var(--muted);
+            line-height: 1.4;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: ltr;
+            unicode-bidi: plaintext;
         }
 
         .primary-cta {
@@ -255,7 +333,9 @@
 
     <main class="shell">
         <button class="lang-toggle" id="lang-toggle">AR</button>
-        <div class="badge">CB</div>
+        <div class="badge">
+            <img src="icons/icon128.png" alt="Tirpo's Porn Blocker logo">
+        </div>
         <h1 id="headline">Oops! Access blocked</h1>
         <p class="lead" id="lead">Looks like <span class="site" id="site"></span> was intercepted to protect your focus.</p>
         <div class="mode-pill" id="mode-pill">Focus page</div>

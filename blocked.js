@@ -1,14 +1,23 @@
 const params = new URLSearchParams(window.location.search);
-const site = params.get('site') || 'this page';
 const mode = params.get('mode') || 'blocked';
+const siteParam = (params.get('site') || '').trim();
 
-const quotes = [
-    'This moment of resistance is building the person you want to become.',
-    'Your future self will thank you for this choice.',
-    'Progress, not perfection.',
-    'You are stronger than the urge that brought you here.',
-    'One clean decision can change the next hour.'
-];
+const QUOTES = {
+    en: [
+        'This moment of resistance is building the person you want to become.',
+        'Your future self will thank you for this choice.',
+        'Progress, not perfection.',
+        'You are stronger than the urge that brought you here.',
+        'One clean decision can change the next hour.'
+    ],
+    ar: [
+        'هذه اللحظة تصنع الشخص الذي تريد أن تكونه.',
+        'نسختك القادمة ستشكرك على هذا القرار.',
+        'التقدم أهم من الكمال.',
+        'أنت أقوى من الرغبة التي قادتك إلى هنا.',
+        'قرار نظيف واحد قد يغير ساعتك القادمة.'
+    ]
+};
 
 const FIXED_QURAN_OUTLET = { name: 'Quran', url: 'https://www.youtube.com/watch?v=bP3AYLevqnI' };
 const CLUMSY_BIRD_REPO_URL = 'https://github.com/ellisonleao/clumsy-bird';
@@ -17,34 +26,61 @@ const CLUMSY_BIRD_LOCAL_URL = chrome.runtime.getURL('vendor/clumsy-bird/index.ht
 const FRIENDLY_GAME_NAME = 'Focus Bird Game';
 const FIXED_GAME_OUTLET = { name: FRIENDLY_GAME_NAME, url: CLUMSY_BIRD_LOCAL_URL };
 const FIXED_OUTLETS = [FIXED_QURAN_OUTLET, FIXED_GAME_OUTLET];
-const MAX_WHOLESOME_OUTLETS = 3;
 const MAX_CUSTOM_OUTLETS = 1;
 const LEGACY_OUTLET_NAMES = new Set(['learn something', 'quick workout', 'meditate']);
 
-const configByMode = {
-    blocked: {
-        headline: 'Oops! Access blocked',
-        pill: 'Strict block',
-        messageTitle: 'Pause here for a second',
-        messageCopy: `Looks like ${site} was blocked to protect your focus. Usually it is just an urge.`,
-        primaryLabel: 'Take a breath',
-        primaryAction: 'breathe'
+const modeContent = {
+    en: {
+        blocked: {
+            headline: 'Oops! Access blocked',
+            pill: 'Strict block',
+            messageTitle: 'Pause here for a second',
+            messageTemplate: 'Looks like {site} was blocked to protect your focus. Usually it is just an urge.',
+            primaryLabel: 'Take a breath',
+            primaryAction: 'breathe'
+        },
+        focus: {
+            headline: 'Route changed on purpose',
+            pill: 'Focus redirect',
+            messageTitle: 'You took the safer route',
+            messageTemplate: "Instead of opening {site}, Tirpo's Porn Blocker sent you here to interrupt the loop and give you a better next step.",
+            primaryLabel: 'Start breathing',
+            primaryAction: 'breathe'
+        },
+        'safe-search': {
+            headline: 'Take the clean route instead',
+            pill: 'Safe Search handoff',
+            messageTitle: 'Not this road',
+            messageTemplate: 'Open Google Safe Search instead and keep the search clean.',
+            primaryLabel: 'Open Google Safe Search',
+            primaryAction: 'google'
+        }
     },
-    focus: {
-        headline: 'Route changed on purpose',
-        pill: 'Focus redirect',
-        messageTitle: 'You took the safer route',
-        messageCopy: `Instead of opening ${site}, tirpos corn blocker sent you here to interrupt the loop and give you a better next step.`,
-        primaryLabel: 'Start breathing',
-        primaryAction: 'breathe'
-    },
-    'safe-search': {
-        headline: 'Take the clean route instead',
-        pill: 'Safe Search handoff',
-        messageTitle: 'Not this road',
-        messageCopy: 'Open Google Safe Search instead and keep the search clean.',
-        primaryLabel: 'Open Google Safe Search',
-        primaryAction: 'google'
+    ar: {
+        blocked: {
+            headline: 'تم حظر الوصول',
+            pill: 'حظر صارم',
+            messageTitle: 'تمهل قليلًا',
+            messageTemplate: 'تم حظر {site} لحماية تركيزك. غالبًا هي مجرد رغبة عابرة.',
+            primaryLabel: 'خذ نفسًا',
+            primaryAction: 'breathe'
+        },
+        focus: {
+            headline: 'تم تحويل المسار',
+            pill: 'تحويل للتركيز',
+            messageTitle: 'اخترت الطريق الآمن',
+            messageTemplate: 'بدلًا من فتح {site}، تم تحويلك إلى هنا لكسر الحلقة واختيار خطوة أفضل.',
+            primaryLabel: 'ابدأ التنفس',
+            primaryAction: 'breathe'
+        },
+        'safe-search': {
+            headline: 'اسلك الطريق الأنظف',
+            pill: 'تحويل البحث الآمن',
+            messageTitle: 'ليس هذا الطريق',
+            messageTemplate: 'افتح البحث الآمن في جوجل بدلًا من ذلك وحافظ على بحث نظيف.',
+            primaryLabel: 'افتح البحث الآمن',
+            primaryAction: 'google'
+        }
     }
 };
 
@@ -52,103 +88,161 @@ const translations = {
     en: {
         lang: 'AR',
         reason: 'Your reason',
+        leadTemplate: 'Looks like {site} was intercepted to protect your focus.',
         startStreak: 'Start your next streak now',
         streakCopyFallback: 'A clean next step still counts.',
+        streakTitleWithDays: 'You had a {days}-day streak',
+        bestStreakCopy: 'Your best streak is {days} days. You can build that again.',
+        pauseBeforeNextTab: 'Pause before you choose the next tab.',
+        doneWell: 'Well done',
+        donePrompt: 'You did great. Close when ready.',
         breatheIn: 'Breathe in...',
+        breatheOut: 'Breathe out...',
+        hold: 'Hold...',
         breathingPrompt: 'Focus on your breathing',
+        inhalePrompt: 'Inhale slowly through your nose',
+        holdPrompt: 'Hold gently',
+        exhalePrompt: 'Exhale slowly',
         done: 'Done',
-        actionLearn: 'Learn something',
-        actionLearnNote: 'Move into a better loop.',
-        actionWorkout: 'Quick workout',
-        actionWorkoutNote: 'Burn the energy off fast.',
-        actionMeditate: 'Meditate',
-        actionMeditateNote: 'Get your nervous system back down.',
         actionBack: 'Back to safety',
         actionBackNote: 'Open Google Safe Search.',
-        takeBreath: 'Take a breath'
+        takeBreath: 'Take a breath',
+        localFocusGame: 'Local focus game',
+        localExtensionPage: 'Local extension page',
+        fixedOutletQuran: 'Quran',
+        fixedOutletGame: 'Focus Bird Game',
+        thisPage: 'this page'
     },
     ar: {
         lang: 'EN',
         reason: 'سببك',
+        leadTemplate: 'يبدو أن {site} تم اعتراضه لحماية تركيزك.',
         startStreak: 'ابدأ سلسلتك من جديد',
         streakCopyFallback: 'الخطوة النظيفة التالية ما زالت مهمة.',
-        breatheIn: 'خذ شهيقاً...',
-        breathingPrompt: 'ركّز على تنفسك',
+        streakTitleWithDays: 'كانت لديك سلسلة لمدة {days} يومًا',
+        bestStreakCopy: 'أفضل سلسلة لديك هي {days} يومًا. يمكنك بناؤها من جديد.',
+        pauseBeforeNextTab: 'توقف قبل أن تختار التبويب التالي.',
+        doneWell: 'أحسنت',
+        donePrompt: 'أديت بشكل ممتاز. أغلق عندما تكون جاهزًا.',
+        breatheIn: 'خذ شهيقًا...',
+        breatheOut: 'أخرج الزفير...',
+        hold: 'احبس النفس...',
+        breathingPrompt: 'ركز على تنفسك',
+        inhalePrompt: 'استنشق ببطء من أنفك',
+        holdPrompt: 'احبس النفس بلطف',
+        exhalePrompt: 'أخرج الزفير ببطء',
         done: 'تم',
-        actionLearn: 'تعلّم شيئاً',
-        actionLearnNote: 'ادخل في مسار أفضل.',
-        actionWorkout: 'تمرين سريع',
-        actionWorkoutNote: 'فرّغ هذه الطاقة بسرعة.',
-        actionMeditate: 'تأمل',
-        actionMeditateNote: 'أعد تهدئة جهازك العصبي.',
         actionBack: 'عودة آمنة',
-        actionBackNote: 'افتح بحث Google الآمن.',
-        takeBreath: 'خذ نفساً'
+        actionBackNote: 'افتح البحث الآمن في جوجل.',
+        takeBreath: 'خذ نفسًا',
+        localFocusGame: 'لعبة تركيز محلية',
+        localExtensionPage: 'صفحة محلية داخل الإضافة',
+        fixedOutletQuran: 'القرآن',
+        fixedOutletGame: 'لعبة الطائر',
+        thisPage: 'هذه الصفحة'
     }
 };
 
-const config = configByMode[mode] || configByMode.blocked;
 let currentLanguage = 'en';
+let breatheTimer = null;
+const latestState = {
+    streakDays: 0,
+    bestStreak: 0,
+    outlets: []
+};
 
-document.getElementById('headline').textContent = config.headline;
-document.getElementById('site').textContent = site;
-document.getElementById('mode-pill').textContent = config.pill;
-document.getElementById('message-panel').classList.remove('hidden');
-document.getElementById('message-title').textContent = config.messageTitle;
-document.getElementById('message-copy').textContent = config.messageCopy;
-document.getElementById('quote').textContent = `"${quotes[Math.floor(Math.random() * quotes.length)]}"`;
-document.getElementById('lang-toggle').addEventListener('click', () => {
-    currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
-    applyLanguage();
-});
+const ui = {
+    headline: document.getElementById('headline'),
+    lead: document.getElementById('lead'),
+    modePill: document.getElementById('mode-pill'),
+    messagePanel: document.getElementById('message-panel'),
+    messageTitle: document.getElementById('message-title'),
+    messageCopy: document.getElementById('message-copy'),
+    quote: document.getElementById('quote'),
+    langToggle: document.getElementById('lang-toggle'),
+    primaryCta: document.getElementById('primary-cta'),
+    reasonTitle: document.querySelector('#reason-panel strong'),
+    reasonText: document.getElementById('reason-text'),
+    reasonPanel: document.getElementById('reason-panel'),
+    streakPanel: document.getElementById('streak-panel'),
+    streakTitle: document.getElementById('streak-title'),
+    streakCopy: document.getElementById('streak-copy'),
+    actionsGrid: document.getElementById('actions-grid'),
+    outletsGrid: document.getElementById('outlets-grid'),
+    breatheOverlay: document.getElementById('breathe-overlay'),
+    breatheCircle: document.getElementById('breathe-circle'),
+    breatheText: document.getElementById('breathe-text'),
+    breathePrompt: document.getElementById('breathe-prompt'),
+    breatheDone: document.getElementById('breathe-done')
+};
 
-const primaryCta = document.getElementById('primary-cta');
-primaryCta.textContent = config.primaryLabel;
-primaryCta.addEventListener('click', () => {
-    if (config.primaryAction === 'google') {
-        window.location.href = 'https://www.google.com/search?safe=active&q=dont+do+it+again+buddy';
-        return;
-    }
-
-    openBreathing();
-});
-
-if (mode === 'safe-search') {
-    window.setTimeout(() => {
-        window.location.href = 'https://www.google.com/search?safe=active&q=dont+do+it+again+buddy';
-    }, 250);
+function t() {
+    return translations[currentLanguage] || translations.en;
 }
 
-chrome.storage.local.get(['whyIQuit', 'streakDays', 'bestStreak', 'wholesomeOutlets'], (result) => {
-    if (result.whyIQuit) {
-        document.getElementById('reason-panel').classList.remove('hidden');
-        document.querySelector('#reason-panel strong').textContent = translations[currentLanguage].reason;
-        document.getElementById('reason-text').textContent = result.whyIQuit;
+function template(text, values) {
+    return Object.entries(values).reduce((acc, [key, value]) => {
+        return acc.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+    }, text);
+}
+
+function displaySite() {
+    return siteParam || t().thisPage;
+}
+
+function currentModeConfig() {
+    const source = currentLanguage === 'ar' ? modeContent.ar : modeContent.en;
+    return source[mode] || source.blocked;
+}
+
+function pickQuote() {
+    const source = QUOTES[currentLanguage] || QUOTES.en;
+    return source[Math.floor(Math.random() * source.length)];
+}
+
+function goToSafeSearch() {
+    window.location.href = 'https://www.google.com/search?safe=active&q=dont+do+it+again+buddy';
+}
+
+function renderPageText() {
+    const lang = t();
+    const cfg = currentModeConfig();
+    const shownSite = displaySite();
+
+    document.body.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
+    document.body.lang = currentLanguage;
+    ui.langToggle.textContent = lang.lang;
+
+    ui.headline.textContent = cfg.headline;
+    ui.lead.innerHTML = template(lang.leadTemplate, { site: '<span class="site" id="site-inline"></span>' });
+    const inlineSite = ui.lead.querySelector('#site-inline');
+    if (inlineSite) {
+        inlineSite.textContent = shownSite;
+    }
+    ui.modePill.textContent = cfg.pill;
+    ui.messagePanel.classList.remove('hidden');
+    ui.messageTitle.textContent = cfg.messageTitle;
+    ui.messageCopy.textContent = template(cfg.messageTemplate, { site: shownSite });
+    ui.primaryCta.textContent = cfg.primaryLabel;
+    ui.quote.textContent = `"${pickQuote()}"`;
+
+    if (ui.reasonTitle) {
+        ui.reasonTitle.textContent = lang.reason;
     }
 
-    const streakDays = result.streakDays || 0;
-    const bestStreak = result.bestStreak || 0;
-    const streakPanel = document.getElementById('streak-panel');
-    streakPanel.classList.remove('hidden');
-    document.getElementById('streak-title').textContent = streakDays > 0
-        ? `You had a ${streakDays}-day streak`
-        : translations[currentLanguage].startStreak;
-    document.getElementById('streak-copy').textContent = bestStreak > 0
-        ? `Your best streak is ${bestStreak} days. You can build that again.`
-        : translations[currentLanguage].streakCopyFallback;
+    ui.breatheText.textContent = lang.breatheIn;
+    ui.breathePrompt.textContent = lang.breathingPrompt;
+    ui.breatheDone.textContent = lang.done;
+}
 
-    renderActions(mode);
-    renderOutlets(result.wholesomeOutlets);
-});
+function renderActions() {
+    const lang = t();
+    ui.actionsGrid.innerHTML = '';
 
-function renderActions(currentMode) {
-    const actionsGrid = document.getElementById('actions-grid');
-    actionsGrid.innerHTML = '';
-    const t = translations[currentLanguage];
-    const actions = currentMode === 'safe-search'
+    const actions = mode === 'safe-search'
         ? [
-            { title: t.takeBreath, note: currentLanguage === 'ar' ? 'توقف قبل أن تختار التبويب التالي.' : 'Pause before you choose the next tab.', href: '#breathe', action: 'breathe' },
-            { title: t.actionBack, note: t.actionBackNote, href: 'https://www.google.com/?safe=active' }
+            { title: lang.takeBreath, note: lang.pauseBeforeNextTab, href: '#breathe', action: 'breathe' },
+            { title: lang.actionBack, note: lang.actionBackNote, href: 'https://www.google.com/?safe=active' }
         ]
         : [];
 
@@ -157,51 +251,32 @@ function renderActions(currentMode) {
         link.className = 'action';
         link.href = action.href;
         link.innerHTML = `<strong>${action.title}</strong><small>${action.note}</small>`;
+
         if (action.action === 'breathe') {
             link.addEventListener('click', (event) => {
                 event.preventDefault();
                 openBreathing();
             });
         }
-        actionsGrid.appendChild(link);
+
+        ui.actionsGrid.appendChild(link);
     });
 }
 
-function applyLanguage() {
-    const body = document.body;
-    const language = translations[currentLanguage];
-    document.getElementById('lang-toggle').textContent = language.lang;
-    body.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
-    body.lang = currentLanguage;
-    const reasonLabel = document.querySelector('#reason-panel strong');
-    if (reasonLabel) {
-        reasonLabel.textContent = language.reason;
+function localizedOutletName(outlet) {
+    const lang = t();
+    const normalizedUrl = normalizeUrl(outlet.url || '');
+    if (normalizedUrl === normalizeUrl(FIXED_QURAN_OUTLET.url)) {
+        return lang.fixedOutletQuran;
     }
-
-    if (currentLanguage === 'ar') {
-        document.getElementById('headline').textContent = mode === 'focus' ? 'تم تحويل المسار' : 'تم حظر الوصول';
-        document.getElementById('lead').innerHTML = `يبدو أن <span class="site" id="site">${site}</span> تم اعتراضه لحماية تركيزك.`;
-        document.getElementById('message-title').textContent = mode === 'safe-search' ? 'خذ الطريق الأنظف' : 'تمهل قليلاً';
-        document.getElementById('message-copy').textContent = mode === 'safe-search'
-            ? 'افتح بحث Google الآمن بدلًا من ذلك.'
-            : `تم حظر ${site} لحماية تركيزك.`;
-        document.getElementById('primary-cta').textContent = mode === 'safe-search' ? 'افتح Google الآمن' : translations.ar.takeBreath;
-    } else {
-        document.getElementById('headline').textContent = config.headline;
-        document.getElementById('lead').innerHTML = `Looks like <span class="site" id="site">${site}</span> was intercepted to protect your focus.`;
-        document.getElementById('message-title').textContent = config.messageTitle;
-        document.getElementById('message-copy').textContent = config.messageCopy;
-        document.getElementById('primary-cta').textContent = config.primaryLabel;
+    if (normalizedUrl === normalizeUrl(FIXED_GAME_OUTLET.url)) {
+        return lang.fixedOutletGame;
     }
-    document.getElementById('breathe-text').textContent = language.breatheIn;
-    document.getElementById('breathe-prompt').textContent = language.breathingPrompt;
-    document.getElementById('breathe-done').textContent = language.done;
-    renderActions(mode);
+    return outlet.name;
 }
 
 function renderOutlets(outlets) {
-    const outletsGrid = document.getElementById('outlets-grid');
-    outletsGrid.innerHTML = '';
+    ui.outletsGrid.innerHTML = '';
     const items = sanitizeWholesomeOutlets(outlets);
 
     items.forEach((outlet) => {
@@ -210,57 +285,105 @@ function renderOutlets(outlets) {
         link.href = outlet.url;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.innerHTML = `<strong>${outlet.name}</strong><small>${outlet.url}</small>`;
-        outletsGrid.appendChild(link);
+
+        const title = document.createElement('strong');
+        title.textContent = localizedOutletName(outlet);
+
+        const compactUrl = document.createElement('small');
+        compactUrl.textContent = formatOutletUrlForDisplay(outlet.url);
+        compactUrl.title = outlet.url;
+
+        link.appendChild(title);
+        link.appendChild(compactUrl);
+        ui.outletsGrid.appendChild(link);
     });
 }
 
-const breatheOverlay = document.getElementById('breathe-overlay');
-const breatheCircle = document.getElementById('breathe-circle');
-const breatheText = document.getElementById('breathe-text');
-const breathePrompt = document.getElementById('breathe-prompt');
-const breatheDone = document.getElementById('breathe-done');
-let breatheTimer = null;
+function formatOutletUrlForDisplay(rawUrl) {
+    if (!rawUrl) {
+        return '';
+    }
+
+    const lang = t();
+    if (rawUrl === CLUMSY_BIRD_LOCAL_URL) {
+        return lang.localFocusGame;
+    }
+
+    try {
+        const parsed = new URL(rawUrl);
+        if (parsed.protocol === 'chrome-extension:') {
+            return lang.localExtensionPage;
+        }
+
+        const host = parsed.hostname.replace(/^www\./i, '');
+        const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
+        const compact = `${host}${path}`;
+        return compact.length > 40 ? `${compact.slice(0, 39)}...` : compact;
+    } catch (error) {
+        return rawUrl.length > 40 ? `${rawUrl.slice(0, 39)}...` : rawUrl;
+    }
+}
+
+function renderStreak(streakDays, bestStreak) {
+    const lang = t();
+    ui.streakPanel.classList.remove('hidden');
+    ui.streakTitle.textContent = streakDays > 0
+        ? template(lang.streakTitleWithDays, { days: streakDays })
+        : lang.startStreak;
+    ui.streakCopy.textContent = bestStreak > 0
+        ? template(lang.bestStreakCopy, { days: bestStreak })
+        : lang.streakCopyFallback;
+}
+
+function applyLanguage() {
+    renderPageText();
+    renderActions();
+    renderStreak(latestState.streakDays, latestState.bestStreak);
+    renderOutlets(latestState.outlets);
+}
 
 function openBreathing() {
-    breatheCircle.style.transition = 'none';
-    breatheCircle.style.transform = 'scale(0.6)';
-    breatheOverlay.classList.add('active');
-    breatheCircle.offsetHeight;
-    breatheCircle.style.transition = 'transform 4s ease-in-out';
+    ui.breatheCircle.style.transition = 'none';
+    ui.breatheCircle.style.transform = 'scale(0.6)';
+    ui.breatheOverlay.classList.add('active');
+    ui.breatheCircle.offsetHeight;
+    ui.breatheCircle.style.transition = 'transform 4s ease-in-out';
     startBreathingCycle();
 }
 
-breatheDone.addEventListener('click', () => {
-    breatheOverlay.classList.remove('active');
-    if (breatheTimer) clearTimeout(breatheTimer);
-    breatheCircle.style.transition = 'none';
-    breatheCircle.style.transform = 'scale(0.6)';
-});
+function closeBreathing() {
+    ui.breatheOverlay.classList.remove('active');
+    if (breatheTimer) {
+        clearTimeout(breatheTimer);
+    }
+    ui.breatheCircle.style.transition = 'none';
+    ui.breatheCircle.style.transform = 'scale(0.6)';
+}
 
 function startBreathingCycle() {
+    const lang = t();
     let elapsed = 0;
     const cycleDuration = 12000;
     const totalDuration = 60000;
 
     function cycle() {
         if (elapsed >= totalDuration) {
-            breatheText.textContent = 'Well done';
-            breathePrompt.textContent = 'You did great. Close when ready.';
+            ui.breatheText.textContent = lang.doneWell;
+            ui.breathePrompt.textContent = lang.donePrompt;
             return;
         }
 
-        breatheText.textContent = 'Breathe in...';
-        breathePrompt.textContent = currentLanguage === 'ar' ? 'استنشق ببطء من أنفك' : 'Inhale slowly through your nose';
-        breatheCircle.style.transform = 'scale(1)';
+        ui.breatheText.textContent = lang.breatheIn;
+        ui.breathePrompt.textContent = lang.inhalePrompt;
+        ui.breatheCircle.style.transform = 'scale(1)';
 
         breatheTimer = setTimeout(() => {
-            breatheText.textContent = 'Hold...';
-            breathePrompt.textContent = currentLanguage === 'ar' ? 'احبس النفس بلطف' : 'Hold gently';
+            ui.breatheText.textContent = lang.hold;
+            ui.breathePrompt.textContent = lang.holdPrompt;
             breatheTimer = setTimeout(() => {
-                breatheText.textContent = 'Breathe out...';
-                breathePrompt.textContent = currentLanguage === 'ar' ? 'أخرج الزفير ببطء' : 'Exhale slowly';
-                breatheCircle.style.transform = 'scale(0.6)';
+                ui.breatheText.textContent = lang.breatheOut;
+                ui.breathePrompt.textContent = lang.exhalePrompt;
+                ui.breatheCircle.style.transform = 'scale(0.6)';
                 breatheTimer = setTimeout(() => {
                     elapsed += cycleDuration;
                     cycle();
@@ -353,3 +476,39 @@ function normalizeUrl(input) {
         return '';
     }
 }
+
+ui.langToggle.addEventListener('click', () => {
+    currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+    applyLanguage();
+});
+
+ui.primaryCta.addEventListener('click', () => {
+    const cfg = currentModeConfig();
+    if (cfg.primaryAction === 'google') {
+        goToSafeSearch();
+        return;
+    }
+    openBreathing();
+});
+
+ui.breatheDone.addEventListener('click', closeBreathing);
+
+chrome.storage.local.get(['whyIQuit', 'streakDays', 'bestStreak', 'wholesomeOutlets'], (result) => {
+    if (result.whyIQuit) {
+        ui.reasonPanel.classList.remove('hidden');
+        ui.reasonTitle.textContent = t().reason;
+        ui.reasonText.textContent = result.whyIQuit;
+    }
+
+    latestState.streakDays = result.streakDays || 0;
+    latestState.bestStreak = result.bestStreak || 0;
+    latestState.outlets = result.wholesomeOutlets;
+    renderStreak(latestState.streakDays, latestState.bestStreak);
+    renderOutlets(latestState.outlets);
+});
+
+if (mode === 'safe-search') {
+    window.setTimeout(goToSafeSearch, 250);
+}
+
+applyLanguage();
