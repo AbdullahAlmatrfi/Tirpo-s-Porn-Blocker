@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tirpos corn blocker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-1: #eff6ff;
+            --bg-2: #dbeafe;
+            --card: rgba(255, 255, 255, 0.9);
+            --ink: #172033;
+            --muted: #6c7894;
+            --accent: #0ea5e9;
+            --accent-soft: rgba(14, 165, 233, 0.12);
+            --line: rgba(23, 32, 51, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            color: var(--ink);
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 28%),
+                radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.14), transparent 20%),
+                radial-gradient(circle at 20% 70%, rgba(14, 165, 233, 0.12), transparent 18%),
+                linear-gradient(180deg, var(--bg-1), var(--bg-2));
+            overflow: hidden;
+        }
+
+        .orb {
+            position: fixed;
+            border-radius: 999px;
+            background: rgba(14, 165, 233, 0.1);
+            filter: blur(2px);
+        }
+
+        .orb-1 { width: 320px; height: 320px; top: -80px; left: -60px; }
+        .orb-2 { width: 220px; height: 220px; right: 10%; top: 22%; }
+        .orb-3 { width: 360px; height: 360px; right: -120px; bottom: -80px; }
+
+        .shell {
+            width: min(620px, 100%);
+            padding: 18px;
+            border-radius: 32px;
+            background: var(--card);
+            backdrop-filter: blur(14px);
+            box-shadow: 0 28px 70px rgba(23, 32, 51, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            position: relative;
+            z-index: 1;
+        }
+
+        .badge {
+            width: 72px;
+            height: 72px;
+            border-radius: 22px;
+            margin: 0 auto 16px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, #0284c7, #0ea5e9);
+            color: white;
+            font-size: 34px;
+            font-weight: 800;
+            box-shadow: 0 18px 32px rgba(14, 165, 233, 0.24);
+        }
+
+        h1 {
+            margin: 0;
+            text-align: center;
+            font-size: clamp(26px, 4vw, 36px);
+            letter-spacing: -0.04em;
+        }
+
+        .lead {
+            max-width: 460px;
+            margin: 12px auto 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .site {
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        .mode-pill {
+            width: fit-content;
+            margin: 18px auto 0;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .panel {
+            margin-top: 18px;
+            padding: 18px;
+            border-radius: 22px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.72);
+        }
+
+        .panel strong { display: block; font-size: 14px; margin-bottom: 6px; }
+        .panel p { margin: 0; color: var(--muted); line-height: 1.7; }
+
+        .grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            margin-top: 18px;
+        }
+
+        .action,
+        .outlet {
+            border-radius: 18px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.82);
+            padding: 14px 16px;
+            text-decoration: none;
+            color: var(--ink);
+            display: block;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .action:hover,
+        .outlet:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(23, 32, 51, 0.08);
+        }
+
+        .action strong,
+        .outlet strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .action small,
+        .outlet small {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .primary-cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 18px auto 0;
+            border: none;
+            border-radius: 16px;
+            padding: 14px 20px;
+            color: white;
+            background: linear-gradient(135deg, #0284c7, #0ea5e9);
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 18px 30px rgba(14, 165, 233, 0.2);
+        }
+
+        .center {
+            display: flex;
+            justify-content: center;
+        }
+
+        .quote {
+            margin-top: 22px;
+            text-align: center;
+            color: var(--muted);
+            font-style: italic;
+            font-size: 18px;
+            line-height: 1.7;
+        }
+
+        .hidden { display: none !important; }
+
+        .lang-toggle {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.8);
+            padding: 8px 12px;
+            color: var(--ink);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .breathe-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            background: rgba(9, 13, 22, 0.6);
+            backdrop-filter: blur(10px);
+            z-index: 5;
+        }
+
+        .breathe-overlay.active { display: flex; }
+
+        .breathe-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            background: radial-gradient(circle, rgba(255,255,255,0.32), rgba(17,163,108,0.22));
+            border: 2px solid rgba(255,255,255,0.4);
+            transform: scale(0.6);
+            transition: transform 4s ease-in-out;
+        }
+
+        .breathe-text,
+        .breathe-prompt {
+            color: white;
+            text-align: center;
+        }
+
+        .breathe-text { font-size: 28px; font-weight: 800; }
+        .breathe-prompt { font-size: 18px; }
+
+        .ghost {
+            border: 1px solid rgba(255,255,255,0.34);
+            background: rgba(255,255,255,0.18);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 16px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <main class="shell">
+        <button class="lang-toggle" id="lang-toggle">AR</button>
+        <div class="badge">CB</div>
+        <h1 id="headline">Oops! Access blocked</h1>
+        <p class="lead" id="lead">Looks like <span class="site" id="site"></span> was intercepted to protect your focus.</p>
+        <div class="mode-pill" id="mode-pill">Focus page</div>
+
+        <section class="panel hidden" id="message-panel">
+            <strong id="message-title">Pause here for a second</strong>
+            <p id="message-copy"></p>
+        </section>
+
+        <section class="panel hidden" id="reason-panel">
+            <strong>Your reason</strong>
+            <p id="reason-text"></p>
+        </section>
+
+        <section class="panel hidden" id="streak-panel">
+            <strong id="streak-title"></strong>
+            <p id="streak-copy"></p>
+        </section>
+
+        <div class="center">
+            <button class="primary-cta" id="primary-cta">Take a breath</button>
+        </div>
+
+        <div class="grid" id="actions-grid"></div>
+        <div class="grid" id="outlets-grid"></div>
+
+        <p class="quote" id="quote"></p>
+    </main>
+
+    <div class="breathe-overlay" id="breathe-overlay">
+        <div class="breathe-circle" id="breathe-circle">
+            <div class="breathe-text" id="breathe-text">Breathe in...</div>
+        </div>
+        <div class="breathe-prompt" id="breathe-prompt">Focus on your breathing</div>
+        <button class="ghost" id="breathe-done">Done</button>
+    </div>
+
+    <script src="blocked.js"></script>
+</body>
+</html>

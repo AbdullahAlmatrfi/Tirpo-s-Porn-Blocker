@@ -1,0 +1,30 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "icons/icon128.png",
+         "16": "icons/icon16.png",
+         "48": "icons/icon48.png"
+      },
+      "default_popup": "popup.html"
+   },
+   "background": {
+      "service_worker": "background.js"
+   },
+   "description": "tirpos corn blocker blocks adult content, risky searches, and distracting sites with optional safe redirects.",
+   "host_permissions": [ "\u003Call_urls>" ],
+   "icons": {
+      "128": "icons/icon128.png",
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyOj0kxYiG8TiB6KgUpkzoVxl4SGl0BlWq/gmCeZ02GgEAC5+gPCnAcNUR8zsc4OjDlqvMpk114Km4dgX+0DYqO7sLyaizRRtomoFzpIZVLIoGUIa9h4e25jIFHgZm5l2fE+mWL+K8P9T6y5N8lwPwlZmrtaRyX1OmoV8+ecUba8pMTOXFrgnfMREkj/txxctO01PIhdVb3iKIKQaMLGjgHodWY6vSP7fzVS90aW/TIaBuyBDZikzox11oB+HVHELy9OID6ygldifGCFra95RkWVqo60Js604IJvBhVZ9+0iVcFY20slVlW+A4yqevj0VgAZbEG8wJKWC0eiHoKDPvwIDAQAB",
+   "manifest_version": 3,
+   "name": "tirpos corn blocker",
+   "permissions": [ "storage", "declarativeNetRequest", "declarativeNetRequestFeedback", "notifications", "tabs" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.0.6",
+   "web_accessible_resources": [ {
+      "matches": [ "\u003Call_urls>" ],
+      "resources": [ "blocked.html", "blocked.js", "sites.js", "onboarding.html", "vendor/clumsy-bird/*", "vendor/clumsy-bird/**/*" ]
+   } ]
+}
