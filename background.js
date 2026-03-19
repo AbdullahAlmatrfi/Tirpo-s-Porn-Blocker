@@ -2,18 +2,43 @@ importScripts('sites.js');
 
 console.log('Background script loaded');
 
-const BLOCK_RULE_ID_START = 1;
-const BLOCK_RULE_ID_END = 7999;
-const ADULT_KEYWORD_RULE_ID_START = 8000;
-const SAFE_SEARCH_RULE_ID_START = 9000;
-const MAX_ADULT_REDIRECT_RULES = 600;
+const BLOCK_RULE_ID_START = 10000;
+const BLOCK_RULE_ID_END = 17999;
+const ALLOW_RULE_ID_START = 18000;
+const ALLOW_RULE_ID_END = 19999;
+const ADULT_KEYWORD_RULE_ID_START = 30000;
+const SAFE_SEARCH_RULE_ID_START = 31000;
+const DNR_UNSAFE_RULE_LIMIT = Number(chrome.declarativeNetRequest?.MAX_NUMBER_OF_UNSAFE_DYNAMIC_RULES) || 5000;
+const DNR_RULE_BUFFER = 80;
+const MAX_DYNAMIC_BLOCK_RULES = Math.max(
+    1000,
+    Math.min(BLOCK_RULE_ID_END - BLOCK_RULE_ID_START + 1, DNR_UNSAFE_RULE_LIMIT - DNR_RULE_BUFFER)
+);
 const MAX_WHOLESOME_OUTLETS = 3;
 const MAX_CUSTOM_OUTLETS = 1;
+const PROTECTED_SEARCH_ENGINE_DOMAINS = [
+    'google.com',
+    'bing.com',
+    'duckduckgo.com',
+    'yandex.com',
+    'yahoo.com',
+    'search.yahoo.com',
+    'ecosia.org',
+    'search.brave.com',
+    'baidu.com'
+];
+const DEFAULT_SELECTED_SOCIAL_SITES = [
+    'youtube.com',
+    'facebook.com',
+    'x.com',
+    'instagram.com',
+    'reddit.com',
+    'tiktok.com',
+    'pinterest.com',
+    'snapchat.com'
+];
 const ADULT_BLOCKLIST_URL = 'https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt';
 const ADULT_BLOCKLIST_CACHE_MS = 24 * 60 * 60 * 1000;
-const DEFAULT_REDIRECT_SETTINGS = {
-    redirectModeEnabled: false
-};
 const DEFAULT_EXTENSION_SETTINGS = {
     extensionEnabled: true
 };
@@ -26,6 +51,41 @@ const FIXED_GAME_OUTLET = { name: FRIENDLY_GAME_NAME, url: CLUMSY_BIRD_LOCAL_URL
 const FIXED_OUTLETS = [FIXED_QURAN_OUTLET, FIXED_GAME_OUTLET];
 const DEFAULT_WHOLESOME_OUTLETS = [...FIXED_OUTLETS];
 const LEGACY_OUTLET_NAMES = new Set(['learn something', 'quick workout', 'meditate']);
+const LEGACY_RULE_IDS_TO_CLEAN = [
+    ...Array.from({ length: 7999 }, (_, index) => index + 1),
+    ...Array.from({ length: 200 }, (_, index) => 8000 + index),
+    ...Array.from({ length: 50 }, (_, index) => 9000 + index)
+];
+let ruleRebuildQueue = Promise.resolve();
+let legacyRuleIdsCleared = false;
+
+function queueRuleRebuild(reason) {
+    ruleRebuildQueue = ruleRebuildQueue
+        .catch(() => undefined)
+        .then(() => rebuildAllRules())
+        .catch((error) => {
+            console.error(`Rule rebuild failed (${reason}):`, error);
+        });
+    return ruleRebuildQueue;
+}
+
+async function clearLegacyRuleIdsOnce() {
+    if (legacyRuleIdsCleared) {
+        return;
+    }
+
+    await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: LEGACY_RULE_IDS_TO_CLEAN,
+        addRules: []
+    });
+
+    await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: LEGACY_RULE_IDS_TO_CLEAN,
+        addRules: []
+    });
+
+    legacyRuleIdsCleared = true;
+}
 
 chrome.runtime.onInstalled.addListener((details) => {
     console.log('Extension installed or updated:', details?.reason);
@@ -51,27 +111,28 @@ chrome.runtime.onInstalled.addListener((details) => {
             lastStreakCheck: '',
             bestStreak: 0,
             installDate: new Date().toISOString(),
-            selectedSocialSites: socialMediaSites.slice(),
+            selectedSocialSites: DEFAULT_SELECTED_SOCIAL_SITES.slice(),
             wholesomeOutlets: DEFAULT_WHOLESOME_OUTLETS,
-            ...DEFAULT_EXTENSION_SETTINGS,
-            ...DEFAULT_REDIRECT_SETTINGS
+            ...DEFAULT_EXTENSION_SETTINGS
         }, async () => {
             await refreshAdultSiteDatabase(true);
-            await rebuildAllRules();
+            await queueRuleRebuild('onInstalled:install');
             chrome.tabs.create({ url: chrome.runtime.getURL('onboarding.html') });
         });
 
         return;
     }
 
-    refreshAdultSiteDatabase(false).finally(rebuildAllRules);
+    refreshAdultSiteDatabase(false).finally(() => {
+        queueRuleRebuild('onInstalled:update');
+    });
 });
 
 chrome.runtime.onStartup.addListener(() => {
     refreshAdultSiteDatabase(false)
         .catch((error) => console.error('Failed to refresh adult database on startup:', error))
         .finally(() => {
-            rebuildAllRules();
+            queueRuleRebuild('onStartup');
             checkDailyStreak();
         });
 });
@@ -101,20 +162,12 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         'gamingBlocked',
         'adultSitesCache',
         'selectedSocialSites',
-        'redirectModeEnabled',
-        'extensionEnabled'
+        'extensionEnabled',
+        'safeSearchEnabled'
     ].some((key) => changes[key]);
 
     if (needsRuleRefresh) {
-        rebuildAllRules();
-    }
-
-    if (changes.adultContentBlocked) {
-        updateAdultKeywordRules(changes.adultContentBlocked.newValue || false);
-    }
-
-    if (changes.safeSearchEnabled) {
-        updateSafeSearchRules(changes.safeSearchEnabled.newValue || false);
+        queueRuleRebuild('storage.onChanged');
     }
 
     if (changes.wholesomeOutlets) {
@@ -122,12 +175,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         if (!areOutletsEqual(changes.wholesomeOutlets.newValue, sanitizedOutlets)) {
             chrome.storage.local.set({ wholesomeOutlets: sanitizedOutlets });
         }
-    }
-});
-
-chrome.runtime.onConnect.addListener((port) => {
-    if (port.name === 'popup') {
-        validateToggleStates();
     }
 });
 
@@ -152,9 +199,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.type === 'ADD_ALLOW_SITE') {
+        handleAddAllowSite(request.site)
+            .then(sendResponse)
+            .catch((error) => {
+                console.error('Error adding allowlist site:', error);
+                sendResponse({ success: false, reason: 'Failed to add allowlist site.' });
+            });
+        return true;
+    }
+
+    if (request.type === 'REMOVE_ALLOW_SITE') {
+        handleRemoveAllowSite(request.site)
+            .then(sendResponse)
+            .catch((error) => {
+                console.error('Error removing allowlist site:', error);
+                sendResponse({ success: false, reason: 'Failed to remove allowlist site.' });
+            });
+        return true;
+    }
+
     if (request.type === 'TOGGLE_SAFE_SEARCH') {
         chrome.storage.local.set({ safeSearchEnabled: !!request.enabled }, () => {
-            updateSafeSearchRules(!!request.enabled);
             sendResponse({ success: true });
         });
         return true;
@@ -172,11 +238,43 @@ chrome.declarativeNetRequest.onRuleMatchedDebug?.addListener((info) => {
     }
 });
 
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    const candidateUrl = changeInfo.url || tab?.url;
+    if (!candidateUrl) {
+        return;
+    }
+
+    enforceTabBlockFallback(tabId, candidateUrl).catch((error) => {
+        console.error('Tab fallback blocker failed:', error);
+    });
+});
+
+chrome.webNavigation.onCommitted.addListener((details) => {
+    if (details.frameId !== 0 || !details.url) {
+        return;
+    }
+
+    enforceTabBlockFallback(details.tabId, details.url).catch((error) => {
+        console.error('Navigation fallback blocker failed (onCommitted):', error);
+    });
+});
+
+chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+    if (details.frameId !== 0 || !details.url) {
+        return;
+    }
+
+    enforceTabBlockFallback(details.tabId, details.url).catch((error) => {
+        console.error('Navigation fallback blocker failed (history):', error);
+    });
+});
+
 chrome.runtime.setUninstallURL('https://tally.so/r/wdXdro');
 
-chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesomeOutlets', 'extensionEnabled'], async (result) => {
+chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesomeOutlets', 'selectedSocialSites', 'extensionEnabled'], async (result) => {
     try {
         const sanitizedOutlets = sanitizeWholesomeOutlets(result.wholesomeOutlets);
+        const sanitizedSocialSites = sanitizeSelectedSocialSites(result.selectedSocialSites);
         const normalizedExtensionEnabled = result.extensionEnabled !== false;
         const storagePatch = {};
 
@@ -188,26 +286,24 @@ chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesome
             storagePatch.extensionEnabled = normalizedExtensionEnabled;
         }
 
+        if (!areStringArraysEqual(result.selectedSocialSites, sanitizedSocialSites)) {
+            storagePatch.selectedSocialSites = sanitizedSocialSites;
+        }
+
         if (Object.keys(storagePatch).length > 0) {
             await chrome.storage.local.set(storagePatch);
         }
 
-        if (result.safeSearchEnabled !== false) {
-            await updateSafeSearchRules(true);
-        }
-
-        if (result.adultContentBlocked) {
-            await updateAdultKeywordRules(true);
-        }
-
         await refreshAdultSiteDatabase(false);
-        await rebuildAllRules();
+        await queueRuleRebuild('initialization');
     } catch (error) {
         console.error('Background initialization failed:', error);
     }
 });
 
 async function rebuildAllRules() {
+    await clearLegacyRuleIdsOnce();
+
     const extensionState = await chrome.storage.local.get(Object.keys(DEFAULT_EXTENSION_SETTINGS));
     const extensionEnabled = extensionState.extensionEnabled !== false;
 
@@ -220,7 +316,17 @@ async function rebuildAllRules() {
 
     await updateBlockingRules();
 
-    const state = await chrome.storage.local.get(['adultContentBlocked', 'safeSearchEnabled']);
+    const state = await chrome.storage.local.get([
+        'blockedSites',
+        'manuallyAddedSites',
+        'unblockedSites',
+        'selectedSocialSites',
+        'socialMediaBlocked',
+        'gamingBlocked',
+        'adultContentBlocked',
+        'safeSearchEnabled'
+    ]);
+    await syncBlockedSitesIndex(state);
     await updateAdultKeywordRules(!!state.adultContentBlocked);
     await updateSafeSearchRules(state.safeSearchEnabled !== false);
 }
@@ -235,20 +341,28 @@ async function updateBlockingRules() {
         'adultSitesCache',
         'selectedSocialSites',
         ...Object.keys(DEFAULT_EXTENSION_SETTINGS),
-        ...Object.keys(DEFAULT_REDIRECT_SETTINGS)
     ]);
 
     const rules = [];
     let ruleId = BLOCK_RULE_ID_START;
+    let allowRuleId = ALLOW_RULE_ID_START;
+    const blockRuleBudget = MAX_DYNAMIC_BLOCK_RULES;
+    const blockRuleIds = Array.from({ length: BLOCK_RULE_ID_END - BLOCK_RULE_ID_START + 1 }, (_, index) => index + BLOCK_RULE_ID_START);
+    const allowRuleIds = Array.from({ length: ALLOW_RULE_ID_END - ALLOW_RULE_ID_START + 1 }, (_, index) => index + ALLOW_RULE_ID_START);
+    const managedRuleIds = [...blockRuleIds, ...allowRuleIds];
     const blockedPageUrl = chrome.runtime.getURL('blocked.html');
-    const redirectSettings = getRedirectSettings(state);
     const unblockedSites = new Set((state.unblockedSites || []).map(normalizeDomain));
     const extensionEnabled = state.extensionEnabled !== false;
+    const allowSites = deduplicate((state.unblockedSites || []).map(normalizeDomain).filter(Boolean));
 
-    const manualSites = (state.manuallyAddedSites || []).map(normalizeDomain).filter(Boolean);
-    const adultSites = state.adultContentBlocked ? getAdultSites(state).filter((site) => !unblockedSites.has(site)) : [];
+    const manualSites = (state.manuallyAddedSites || [])
+        .map(normalizeDomain)
+        .filter((site) => site && !isProtectedSearchEngineDomain(site));
+    const adultSites = state.adultContentBlocked
+        ? getAdultSites(state).filter((site) => site && !isProtectedSearchEngineDomain(site) && !unblockedSites.has(site))
+        : [];
     const socialSites = state.socialMediaBlocked
-        ? (state.selectedSocialSites || socialMediaSites).map(normalizeDomain).filter((site) => !unblockedSites.has(site))
+        ? sanitizeSelectedSocialSites(state.selectedSocialSites).filter((site) => !unblockedSites.has(site))
         : [];
     const gamingSitesList = state.gamingBlocked
         ? gamingSites.map(normalizeDomain).filter((site) => !unblockedSites.has(site))
@@ -256,21 +370,37 @@ async function updateBlockingRules() {
 
     if (!extensionEnabled) {
         await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: Array.from({ length: BLOCK_RULE_ID_END - BLOCK_RULE_ID_START + 1 }, (_, index) => index + BLOCK_RULE_ID_START),
+            removeRuleIds: managedRuleIds,
             addRules: []
         });
         return;
     }
 
+    allowSites.forEach((site) => {
+        if (!site || allowRuleId > ALLOW_RULE_ID_END || rules.length >= blockRuleBudget) {
+            return;
+        }
+
+        rules.push({
+            id: allowRuleId++,
+            priority: 100,
+            action: { type: 'allow' },
+            condition: {
+                urlFilter: `||${site}^`,
+                resourceTypes: ['main_frame']
+            }
+        });
+    });
+
     const addDirectSiteRule = (site, matchType, label) => {
-        if (!site || unblockedSites.has(site) || ruleId > BLOCK_RULE_ID_END) {
+        if (!site || unblockedSites.has(site) || ruleId > BLOCK_RULE_ID_END || rules.length >= blockRuleBudget) {
             return;
         }
 
         rules.push({
             id: ruleId++,
             priority: 3,
-            action: buildNavigationAction(matchType, label || site, redirectSettings, blockedPageUrl),
+            action: buildNavigationAction(label || site, blockedPageUrl),
             condition: {
                 urlFilter: `||${site}^`,
                 resourceTypes: ['main_frame']
@@ -283,28 +413,20 @@ async function updateBlockingRules() {
     gamingSitesList.forEach((site) => addDirectSiteRule(site, 'blocked', site));
 
     if (adultSites.length > 0) {
-        const adultAction = buildNavigationAction('adult', 'Adult content', redirectSettings, blockedPageUrl);
         const blockAction = { type: 'block' };
-        const redirectAllowed = redirectSettings.redirectModeEnabled === true;
         const adultCandidates = deduplicate(adultSites);
-        const availableSlots = Math.max(0, BLOCK_RULE_ID_END - ruleId + 1);
+        const availableSlots = Math.max(0, blockRuleBudget - rules.length);
         const adultSitesToApply = adultCandidates.slice(0, availableSlots);
-        let adultRedirectRulesUsed = 0;
 
         adultSitesToApply.forEach((site) => {
-            if (!site || unblockedSites.has(site) || ruleId > BLOCK_RULE_ID_END) {
+            if (!site || unblockedSites.has(site) || ruleId > BLOCK_RULE_ID_END || rules.length >= blockRuleBudget) {
                 return;
-            }
-
-            const useRedirect = redirectAllowed && adultRedirectRulesUsed < MAX_ADULT_REDIRECT_RULES;
-            if (useRedirect) {
-                adultRedirectRulesUsed += 1;
             }
 
             rules.push({
                 id: ruleId++,
                 priority: 2,
-                action: useRedirect ? adultAction : blockAction,
+                action: blockAction,
                 condition: {
                     urlFilter: `||${site}^`,
                     resourceTypes: ['main_frame']
@@ -316,56 +438,47 @@ async function updateBlockingRules() {
         if (omitted > 0) {
             console.warn(`Adult domain list truncated by rule budget. Applied ${adultSitesToApply.length}, omitted ${omitted}.`);
         }
-
-        if (redirectAllowed && adultSitesToApply.length > MAX_ADULT_REDIRECT_RULES) {
-            console.warn(`Adult redirects capped at ${MAX_ADULT_REDIRECT_RULES} due Chrome unsafe dynamic rule limit. Remaining adult domains use block action.`);
-        }
     }
 
     await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: Array.from({ length: BLOCK_RULE_ID_END - BLOCK_RULE_ID_START + 1 }, (_, index) => index + BLOCK_RULE_ID_START),
+        removeRuleIds: managedRuleIds,
         addRules: rules
     });
 
-    console.log('Blocking rules updated:', rules.length);
+    console.log(`Blocking rules updated: ${rules.length}/${blockRuleBudget}`);
 }
 
 async function updateAdultKeywordRules(enabled) {
     const state = await chrome.storage.local.get([
-        ...Object.keys(DEFAULT_REDIRECT_SETTINGS),
         ...Object.keys(DEFAULT_EXTENSION_SETTINGS)
     ]);
-    const redirectSettings = getRedirectSettings(state);
     const extensionEnabled = state.extensionEnabled !== false;
     const shouldEnable = enabled && extensionEnabled;
-    const blockedPageUrl = chrome.runtime.getURL('blocked.html');
     const ruleIdsToRemove = Array.from({ length: 200 }, (_, index) => ADULT_KEYWORD_RULE_ID_START + index);
 
-    await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: ruleIdsToRemove,
-        addRules: []
-    });
-
     if (!shouldEnable) {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: ruleIdsToRemove,
+            addRules: []
+        });
         return;
     }
 
-    // Use one regex per keyword to avoid Chrome's 2KB compiled regex limit.
     const rules = ADULT_KEYWORDS.map((keyword, index) => {
-        const escaped = escapeRegex(keyword).replace(/\\ /g, '(?:\\+|%20|\\s)');
         return {
             id: ADULT_KEYWORD_RULE_ID_START + index,
-            priority: 4,
-            action: buildNavigationAction('adult', 'Blocked adult search', redirectSettings, blockedPageUrl),
+            priority: 250,
+            action: { type: 'block' },
             condition: {
-                regexFilter: `^https?://.*(?:${escaped})`,
-                resourceTypes: ['main_frame']
+                urlFilter: keyword,
+                resourceTypes: ['main_frame'],
+                isUrlFilterCaseSensitive: false
             }
         };
     });
 
     await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: [],
+        removeRuleIds: ruleIdsToRemove,
         addRules: rules
     });
 }
@@ -377,12 +490,11 @@ async function updateSafeSearchRules(enabled) {
     const shouldEnable = enabled && extensionEnabled;
     const ruleIdsToRemove = Array.from({ length: 50 }, (_, index) => SAFE_SEARCH_RULE_ID_START + index);
 
-    await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: ruleIdsToRemove,
-        addRules: []
-    });
-
     if (!shouldEnable) {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: ruleIdsToRemove,
+            addRules: []
+        });
         return;
     }
 
@@ -522,7 +634,7 @@ async function updateSafeSearchRules(enabled) {
     ];
 
     await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: [],
+        removeRuleIds: ruleIdsToRemove,
         addRules: rules
     });
 }
@@ -534,12 +646,16 @@ async function handleAddManualSite(siteInput) {
         return { success: false, reason: 'Please enter a valid domain.' };
     }
 
+    if (isProtectedSearchEngineDomain(site)) {
+        return { success: false, reason: 'Core search engines are protected. Use keyword/category blocking instead.' };
+    }
+
     const state = await chrome.storage.local.get(['manuallyAddedSites', 'blockedSites', 'unblockedSites']);
     const manualSites = (state.manuallyAddedSites || []).map(normalizeDomain);
     const blockedSites = (state.blockedSites || []).map(normalizeDomain);
     const unblockedSites = (state.unblockedSites || []).map(normalizeDomain);
 
-    if (manualSites.includes(site) || blockedSites.includes(site)) {
+    if ((manualSites.includes(site) || blockedSites.includes(site)) && !unblockedSites.includes(site)) {
         return { success: false, reason: 'Site already blocked.' };
     }
 
@@ -549,6 +665,43 @@ async function handleAddManualSite(siteInput) {
         unblockedSites: unblockedSites.filter((entry) => entry !== site)
     });
 
+    await queueRuleRebuild('handleAddManualSite');
+    return { success: true };
+}
+
+async function handleAddAllowSite(siteInput) {
+    const site = normalizeDomain(siteInput);
+    if (!site) {
+        return { success: false, reason: 'Please enter a valid domain.' };
+    }
+
+    const state = await chrome.storage.local.get(['blockedSites', 'manuallyAddedSites', 'unblockedSites', 'selectedSocialSites']);
+    const blockedSites = (state.blockedSites || []).map(normalizeDomain).filter((entry) => entry !== site);
+    const manuallyAddedSites = (state.manuallyAddedSites || []).map(normalizeDomain).filter((entry) => entry !== site);
+    const selectedSocialSites = sanitizeSelectedSocialSites(state.selectedSocialSites).filter((entry) => entry !== site);
+    const unblockedSites = deduplicate([...(state.unblockedSites || []).map(normalizeDomain), site]);
+
+    await chrome.storage.local.set({
+        blockedSites,
+        manuallyAddedSites,
+        selectedSocialSites,
+        unblockedSites
+    });
+
+    await queueRuleRebuild('handleAddAllowSite');
+    return { success: true };
+}
+
+async function handleRemoveAllowSite(siteInput) {
+    const site = normalizeDomain(siteInput);
+    if (!site) {
+        return { success: false, reason: 'Please enter a valid domain.' };
+    }
+
+    const state = await chrome.storage.local.get(['unblockedSites']);
+    const unblockedSites = (state.unblockedSites || []).map(normalizeDomain).filter((entry) => entry !== site);
+    await chrome.storage.local.set({ unblockedSites });
+    await queueRuleRebuild('handleRemoveAllowSite');
     return { success: true };
 }
 
@@ -566,7 +719,7 @@ async function handleRemoveSite(siteInput) {
         unblockedSites
     });
 
-    await rebuildAllRules();
+    await queueRuleRebuild('handleRemoveSite');
 
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const activeTab = tabs[0];
@@ -596,7 +749,7 @@ async function validateBlockingRules() {
 
     if (shouldHaveRules && dynamicRules.length === 0) {
         console.warn('Rules were empty while protection was enabled. Rebuilding.');
-        await rebuildAllRules();
+        await queueRuleRebuild('validateBlockingRules');
     }
 }
 
@@ -670,19 +823,6 @@ function checkDailyStreak() {
     });
 }
 
-function validateToggleStates() {
-    chrome.storage.local.get(['blockedSites', 'selectedSocialSites'], (result) => {
-        const blockedSites = (result.blockedSites || []).map(normalizeDomain);
-        const selectedSocialSites = (result.selectedSocialSites || socialMediaSites).map(normalizeDomain);
-
-        chrome.storage.local.set({
-            adultContentBlocked: uniqueAdultSites.some((site) => blockedSites.includes(normalizeDomain(site))),
-            socialMediaBlocked: selectedSocialSites.some((site) => blockedSites.includes(normalizeDomain(site))),
-            gamingBlocked: gamingSites.some((site) => blockedSites.includes(normalizeDomain(site)))
-        });
-    });
-}
-
 async function refreshAdultSiteDatabase(forceRefresh) {
     const cache = await chrome.storage.local.get(['adultSitesCache', 'lastCacheUpdate']);
     const now = Date.now();
@@ -731,41 +871,13 @@ async function refreshAdultSiteDatabase(forceRefresh) {
     }
 }
 
-function getRedirectSettings(state) {
-    return {
-        ...DEFAULT_REDIRECT_SETTINGS,
-        ...state
-    };
-}
-
-function buildNavigationAction(matchType, label, redirectSettings, blockedPageUrl) {
-    if (shouldRedirect(matchType, redirectSettings)) {
-        return {
-            type: 'redirect',
-            redirect: {
-                url: getRedirectTarget(redirectSettings, label, blockedPageUrl)
-            }
-        };
-    }
-
+function buildNavigationAction(label, blockedPageUrl) {
     return {
         type: 'redirect',
         redirect: {
             url: `${blockedPageUrl}?site=${encodeURIComponent(label)}`
         }
     };
-}
-
-function shouldRedirect(matchType, settings) {
-    if (!settings.redirectModeEnabled) {
-        return false;
-    }
-
-    return matchType === 'adult' || matchType === 'blocked';
-}
-
-function getRedirectTarget(settings, label, blockedPageUrl) {
-    return `${blockedPageUrl}?site=${encodeURIComponent(label)}&mode=focus`;
 }
 
 function getAdultSites(state) {
@@ -815,12 +927,219 @@ function normalizeUrl(input) {
     }
 }
 
-function escapeRegex(input) {
-    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function deduplicate(values) {
     return [...new Set(values)];
+}
+
+function sanitizeSelectedSocialSites(value) {
+    const allowed = new Set(DEFAULT_SELECTED_SOCIAL_SITES.map(normalizeDomain));
+    const hasExplicitList = Array.isArray(value);
+    const source = hasExplicitList ? value : DEFAULT_SELECTED_SOCIAL_SITES;
+    const selected = deduplicate(source.map(normalizeDomain).filter(Boolean));
+    const filtered = selected.filter((domain) => allowed.has(domain));
+    if (!hasExplicitList) {
+        return filtered.length > 0 ? filtered : DEFAULT_SELECTED_SOCIAL_SITES.slice();
+    }
+    return filtered;
+}
+
+function areStringArraysEqual(a, b) {
+    const left = Array.isArray(a) ? a.map((item) => String(item)) : [];
+    const right = Array.isArray(b) ? b.map((item) => String(item)) : [];
+    if (left.length !== right.length) {
+        return false;
+    }
+
+    return left.every((value, index) => value === right[index]);
+}
+
+function findDomainMatch(host, domains) {
+    const normalizedHost = normalizeDomain(host);
+    if (!normalizedHost || !Array.isArray(domains)) {
+        return '';
+    }
+
+    return domains.find((domain) => {
+        const normalizedDomain = normalizeDomain(domain);
+        return normalizedDomain &&
+            (normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`));
+    }) || '';
+}
+
+function isProtectedSearchEngineDomain(domain) {
+    const normalizedDomain = normalizeDomain(domain);
+    if (!normalizedDomain) {
+        return false;
+    }
+
+    return PROTECTED_SEARCH_ENGINE_DOMAINS.some((protectedDomain) => {
+        const normalizedProtected = normalizeDomain(protectedDomain);
+        return normalizedDomain === normalizedProtected || normalizedDomain.endsWith(`.${normalizedProtected}`);
+    });
+}
+
+function resolveFallbackBlockedMatch(host, state) {
+    const blockedSites = deduplicate((state.blockedSites || []).map(normalizeDomain).filter((site) => site && !isProtectedSearchEngineDomain(site)));
+    const blockedMatch = findDomainMatch(host, blockedSites);
+    if (blockedMatch) {
+        return blockedMatch;
+    }
+
+    const manualSites = deduplicate((state.manuallyAddedSites || []).map(normalizeDomain).filter((site) => site && !isProtectedSearchEngineDomain(site)));
+    const manualMatch = findDomainMatch(host, manualSites);
+    if (manualMatch) {
+        return manualMatch;
+    }
+
+    if (state.socialMediaBlocked) {
+        const selectedSocial = sanitizeSelectedSocialSites(state.selectedSocialSites).map(normalizeDomain).filter(Boolean);
+        const socialMatch = findDomainMatch(host, selectedSocial);
+        if (socialMatch) {
+            return socialMatch;
+        }
+    }
+
+    if (state.gamingBlocked) {
+        const gamingList = deduplicate(gamingSites.map(normalizeDomain).filter(Boolean));
+        const gamingMatch = findDomainMatch(host, gamingList);
+        if (gamingMatch) {
+            return gamingMatch;
+        }
+    }
+
+    return '';
+}
+
+function hasExplicitKeywordInUrl(url) {
+    if (!url) {
+        return false;
+    }
+
+    const searchParamKeys = new Set([
+        'q',
+        'query',
+        'text',
+        'p',
+        'wd',
+        'k',
+        'keyword',
+        'search_query',
+        'searchterm'
+    ]);
+
+    const params = new URLSearchParams(url.search || '');
+    const explicitValues = [];
+    params.forEach((value, key) => {
+        if (searchParamKeys.has(String(key || '').toLowerCase())) {
+            explicitValues.push(value || '');
+        }
+    });
+
+    if (explicitValues.length === 0) {
+        return false;
+    }
+
+    const decode = (value) => {
+        try {
+            return decodeURIComponent(value || '');
+        } catch (error) {
+            return value || '';
+        }
+    };
+
+    const candidate = explicitValues.map(decode).join(' ').toLowerCase();
+    if (!candidate.trim()) {
+        return false;
+    }
+
+    return ADULT_KEYWORDS.some((keyword) => candidate.includes(String(keyword).toLowerCase()));
+}
+
+async function enforceTabBlockFallback(tabId, rawUrl) {
+    const blockedPagePrefix = chrome.runtime.getURL('blocked.html');
+
+    if (!rawUrl || rawUrl.startsWith(blockedPagePrefix)) {
+        return;
+    }
+
+    let parsed;
+    try {
+        parsed = new URL(rawUrl);
+    } catch (error) {
+        return;
+    }
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return;
+    }
+
+    const host = normalizeDomain(parsed.hostname);
+    if (!host) {
+        return;
+    }
+
+    const state = await chrome.storage.local.get([
+        'extensionEnabled',
+        'blockedSites',
+        'manuallyAddedSites',
+        'unblockedSites',
+        'selectedSocialSites',
+        'socialMediaBlocked',
+        'gamingBlocked'
+    ]);
+
+    if (state.extensionEnabled === false) {
+        return;
+    }
+
+    if (hasExplicitKeywordInUrl(parsed)) {
+        await chrome.tabs.update(tabId, {
+            url: `${blockedPagePrefix}?site=${encodeURIComponent(host)}`
+        });
+        return;
+    }
+
+    const unblockedSites = deduplicate((state.unblockedSites || []).map(normalizeDomain).filter(Boolean));
+    if (findDomainMatch(host, unblockedSites)) {
+        return;
+    }
+
+    const matchedDomain = resolveFallbackBlockedMatch(host, state);
+    if (!matchedDomain) {
+        return;
+    }
+
+    await chrome.tabs.update(tabId, {
+        url: `${blockedPagePrefix}?site=${encodeURIComponent(matchedDomain)}`
+    });
+}
+
+async function syncBlockedSitesIndex(state) {
+    const unblocked = new Set((state.unblockedSites || []).map(normalizeDomain).filter(Boolean));
+    const manualSites = (state.manuallyAddedSites || [])
+        .map(normalizeDomain)
+        .filter((site) => site && !isProtectedSearchEngineDomain(site));
+    const socialSites = state.socialMediaBlocked
+        ? sanitizeSelectedSocialSites(state.selectedSocialSites).map(normalizeDomain).filter(Boolean)
+        : [];
+    const gamingSitesList = state.gamingBlocked
+        ? gamingSites.map(normalizeDomain).filter(Boolean)
+        : [];
+
+    const computedBlocked = deduplicate([
+        ...manualSites,
+        ...socialSites,
+        ...gamingSitesList
+    ])
+        .filter((site) => site && !unblocked.has(site))
+        .sort((a, b) => a.localeCompare(b));
+
+    const currentBlocked = deduplicate((state.blockedSites || []).map(normalizeDomain).filter(Boolean))
+        .sort((a, b) => a.localeCompare(b));
+
+    if (!areStringArraysEqual(currentBlocked, computedBlocked)) {
+        await chrome.storage.local.set({ blockedSites: computedBlocked });
+    }
 }
 
 function chunkArray(values, size) {
@@ -912,13 +1231,29 @@ function normalizeOutletPreset(outlet) {
 }
 
 const ADULT_KEYWORDS = [
-    'porn', 'xxx', 'nsfw', 'xnxx', 'xvideo', 'xhamster', 'redtube', 'youporn',
-    'pornhub', 'brazzers', 'bangbros', 'naughty', 'hardcore', 'milf', 'hentai',
-    'onlyfans', 'fansly', 'chaturbate', 'livejasmin', 'stripchat', 'bongacams',
-    'cam4', 'camsoda', 'myfreecams', 'flirt4free', 'camgirl', 'webcamgirl',
-    'nude', 'naked', 'pussy', 'cock', 'dick', 'penis', 'vagina', 'boobs', 'tits',
-    'anal', 'blowjob', 'handjob', 'cumshot', 'creampie', 'gangbang', 'threesome',
-    'lesbian', 'gay porn', 'fetish', 'bdsm', 'bondage', 'escort', 'hooker',
-    'adultvideo', 'adultmovie', 'adultsite', 'adulttube', 'porntube', 'rule34',
-    'sex video', 'sex movie', 'sex tape', 'sextape', 'leaked nudes'
+    'porn',
+    'xxx',
+    'nsfw',
+    'pornhub',
+    'xnxx',
+    'xhamster',
+    'xvideos',
+    'redtube',
+    'youporn',
+    'hentai',
+    'onlyfans',
+    'fansly',
+    'chaturbate',
+    'stripchat',
+    'cam4',
+    'camsoda',
+    'myfreecams',
+    'adulttube',
+    'porntube',
+    'rule34',
+    'nude',
+    'naked',
+    'boobs',
+    'blowjob',
+    'escort'
 ];

@@ -1,0 +1,92 @@
+[
+  {
+    "id": 50000,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(sex|porn|xxx|nsfw)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50001,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(pornhub|xnxx|xhamster)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50002,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(xvideos|redtube|youporn)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50003,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(hentai|onlyfans|fansly)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50004,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(chaturbate|stripchat|cam4)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50005,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(camsoda|myfreecams|adulttube)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50006,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(porntube|rule34|nude)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50007,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(naked|boobs|blowjob)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  },
+  {
+    "id": 50008,
+    "priority": 500,
+    "action": { "type": "redirect", "redirect": { "extensionPath": "/blocked.html?site=Search%20keyword%20match" } },
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[^\\/]+\\/[^#]*\\?[^#]*(q|query|text|p|wd|k|keyword|search_query|searchterm)=[^#]*(escort)[^#]*",
+      "resourceTypes": ["main_frame"],
+      "isUrlFilterCaseSensitive": false
+    }
+  }
+]

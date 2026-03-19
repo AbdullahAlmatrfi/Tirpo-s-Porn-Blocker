@@ -22,10 +22,6 @@ const GAMING_SITES = [
     'leagueoflegends.com'
 ];
 
-const DEFAULT_REDIRECT_SETTINGS = {
-    redirectModeEnabled: false
-};
-
 const DEFAULT_OUTLETS = [
     { name: 'Quran', url: 'https://www.youtube.com/watch?v=bP3AYLevqnI' }
 ];
@@ -48,22 +44,22 @@ const TRANSLATIONS = {
     en: {
         lang: 'AR',
         title: "Tirpo's Porn Blocker",
-        subtitle: 'Strict blocking with optional safe redirects.',
-        nav: ['Home', 'Block', 'Redirect', 'Insights'],
+        subtitle: 'Strict blocking with smart allowlist control.',
+        nav: ['Home', 'Blocklist', 'Allowlist', 'Insights'],
         eyebrow: 'Modern protection',
         summaryLabels: ['Mode', 'Protected sites', 'Today'],
         overviewKicker: 'Overview',
         overviewTitle: 'Protection at a glance',
-        overviewNote: 'Turn on the essentials here, then fine-tune strict blocking and safe redirects in their own pages.',
+        overviewNote: 'Turn on essentials here, then fine-tune blocklist and allowlist controls in their own pages.',
         liveStatusKicker: 'Live status',
         anchorKicker: 'Anchor',
         anchorTitle: 'Why I quit',
         strictKicker: 'Strict blocking',
-        strictTitle: 'Block entire websites',
-        strictNote: 'This is your BlockSite-style control page for domain blocking, category blocking, and list management.',
+        strictTitle: 'Manage blocklist',
+        strictNote: 'Control blocked domains, category shields, and protected lookups in one place.',
         addSiteKicker: 'Add a site',
-        addSiteTitle: 'Manual block list',
-        blockSiteButton: 'Block site',
+        addSiteTitle: 'Add to blocklist',
+        blockSiteButton: 'Add to blocklist',
         presetsKicker: 'Quick presets',
         presetsTitle: 'Category blocking',
         adultTitle: 'Adult content',
@@ -71,11 +67,17 @@ const TRANSLATIONS = {
         gamingTitle: 'Gaming',
         gamingDesc: 'Blocks common gaming and community sites during work or recovery.',
         socialKicker: 'Social presets',
-        socialTitle: 'Customize social blocking',
+        socialTitle: 'Social media',
         socialMaster: 'Master',
         dbKicker: 'Protected database',
-        dbTitle: 'Blocked websites',
+        dbTitle: 'Blocked domains',
         dbNote: 'Manual blocks stay editable. Database results only unlock on exact full-domain matches, and explicit search terms are not allowed here.',
+        whitelistKicker: 'Allowlist',
+        whitelistTitle: 'Manage allowlist',
+        whitelistNote: 'Allowed domains always bypass protected database and category blocking rules.',
+        whitelistAddKicker: 'Add allowed domain',
+        whitelistAddTitle: 'Add to allowlist',
+        whitelistButton: 'Add to allowlist',
         redirectKicker: 'Safe redirection',
         redirectTitle: 'Redirect risky clicks',
         redirectNote: 'This is your PorNo-style layer. When enabled, blocked matches can be rerouted to a safer place.',
@@ -112,7 +114,7 @@ const TRANSLATIONS = {
         lang: 'EN',
         title: 'تيربوس كورن بلوكر',
         subtitle: 'حظر صارم مع تحويل آمن اختياري.',
-        nav: ['الرئيسية', 'الحظر', 'التحويل', 'الإحصاءات'],
+        nav: ['الرئيسية', 'الحظر', 'قائمة السماح', 'الإحصاءات'],
         eyebrow: 'حماية عصرية',
         summaryLabels: ['الوضع', 'المواقع المحمية', 'اليوم'],
         overviewKicker: 'نظرة عامة',
@@ -176,7 +178,7 @@ const TRANSLATIONS = {
 const BRANDING = {
     en: {
         name: "Tirpo's Porn Blocker",
-        subtitle: 'Strict blocking with optional safe redirects.'
+        subtitle: 'Strict blocking with smart allowlist control.'
     },
     ar: {
         name: 'مانع المواقع الإباحية الخاص بتيربو',
@@ -247,8 +249,16 @@ const RUNTIME_TEXT = {
         presetReadyToAdd: 'Ready to add to your social preset list',
         presetAdd: 'Add',
         presetRemove: 'Remove',
+        socialMasterEmpty: 'No social sites selected yet.',
+        socialMasterPrefix: 'Current master sites:',
         outletDefaultTag: 'Default',
         outletRemove: 'Remove',
+        whitelistInvalid: 'Enter a valid domain like example.com.',
+        whitelistDuplicate: 'This domain is already in allowlist.',
+        whitelistAdded: '{site} added to allowlist.',
+        whitelistRemoved: '{site} removed from allowlist.',
+        whitelistEmpty: 'No allowlist domains yet.',
+        whitelistRemove: 'Remove',
         fixedOutletQuran: 'Quran',
         fixedOutletGame: 'Focus Bird Game',
         localFocusGame: 'Local focus game',
@@ -332,9 +342,36 @@ const RUNTIME_TEXT = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
-    chrome.runtime.connect({ name: 'popup' });
+Object.assign(TRANSLATIONS.ar, {
+    whitelistKicker: '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d',
+    whitelistTitle: '\u0625\u062f\u0627\u0631\u0629 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d',
+    whitelistNote: '\u0627\u0644\u0646\u0637\u0627\u0642\u0627\u062a \u0627\u0644\u0645\u0633\u0645\u0648\u062d \u0628\u0647\u0627 \u062a\u062a\u062c\u0627\u0648\u0632 \u062f\u0627\u0626\u0645\u064b\u0627 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0648\u062d\u0638\u0631 \u0627\u0644\u0641\u0626\u0627\u062a.',
+    whitelistAddKicker: '\u0625\u0636\u0627\u0641\u0629 \u0646\u0637\u0627\u0642 \u0645\u0633\u0645\u0648\u062d',
+    whitelistAddTitle: '\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d',
+    whitelistButton: '\u0623\u0636\u0641 \u0625\u0644\u0649 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d'
+});
 
+Object.assign(RUNTIME_TEXT.en, {
+    blockCurrentPageButton: 'Block this page',
+    blockCurrentInvalidTab: 'Open a normal website tab first.',
+    blockCurrentBlocked: '{site} blocked. Redirecting to Tirpo page...',
+    blockCurrentRedirectFailed: 'Blocked successfully, but redirect failed.'
+});
+
+Object.assign(RUNTIME_TEXT.ar, {
+    whitelistInvalid: '\u0623\u062f\u062e\u0644 \u0646\u0637\u0627\u0642\u064b\u0627 \u0635\u0627\u0644\u062d\u064b\u0627 \u0645\u062b\u0644 example.com.',
+    whitelistDuplicate: '\u0647\u0630\u0627 \u0627\u0644\u0646\u0637\u0627\u0642 \u0645\u0648\u062c\u0648\u062f \u0628\u0627\u0644\u0641\u0639\u0644 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d.',
+    whitelistAdded: '\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 {site} \u0625\u0644\u0649 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d.',
+    whitelistRemoved: '\u062a\u0645\u062a \u0625\u0632\u0627\u0644\u0629 {site} \u0645\u0646 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d.',
+    whitelistEmpty: '\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u0637\u0627\u0642\u0627\u062a \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0633\u0645\u0627\u062d \u0628\u0639\u062f.',
+    whitelistRemove: '\u0625\u0632\u0627\u0644\u0629',
+    blockCurrentPageButton: '\u062d\u0638\u0631 \u0647\u0630\u0647 \u0627\u0644\u0635\u0641\u062d\u0629',
+    blockCurrentInvalidTab: '\u0627\u0641\u062a\u062d \u0645\u0648\u0642\u0639\u064b\u0627 \u0639\u0627\u062f\u064a\u064b\u0627 \u0623\u0648\u0644\u064b\u0627 \u062b\u0645 \u062d\u0627\u0648\u0644 \u0645\u062c\u062f\u062f\u064b\u0627.',
+    blockCurrentBlocked: '\u062a\u0645 \u062d\u0638\u0631 {site}. \u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0648\u064a\u0644 \u0625\u0644\u0649 \u0635\u0641\u062d\u0629 \u062a\u064a\u0631\u0628\u0648...',
+    blockCurrentRedirectFailed: '\u062a\u0645 \u0627\u0644\u062d\u0638\u0631 \u0648\u0644\u0643\u0646 \u062a\u0639\u0630\u0631 \u0627\u0644\u062a\u062d\u0648\u064a\u0644.'
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
     const elements = {
         navButtons: [...document.querySelectorAll('.page-nav__button')],
         pages: [...document.querySelectorAll('.page')],
@@ -351,19 +388,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         socialToggle: document.getElementById('social-media-toggle'),
         gamingToggle: document.getElementById('gaming-toggle'),
         safeSearchToggle: document.getElementById('safe-search-toggle'),
-        redirectToggleHome: document.getElementById('redirect-mode-toggle-home'),
-        redirectToggle: document.getElementById('redirect-mode-toggle'),
-        redirectSettings: document.getElementById('redirect-settings'),
-        redirectPreview: document.getElementById('redirect-preview'),
         adultDbCount: document.getElementById('adult-db-count'),
         siteInput: document.getElementById('site-input'),
         addSiteButton: document.getElementById('add-site'),
+        blockCurrentPageButton: document.getElementById('block-current-page'),
         feedback: document.getElementById('form-feedback'),
         siteCount: document.getElementById('site-count'),
         searchInput: document.getElementById('search-blocked-sites'),
         searchFeedback: document.getElementById('search-feedback'),
         blockedList: document.getElementById('blocked-list'),
+        whitelistInput: document.getElementById('whitelist-input'),
+        addWhitelistButton: document.getElementById('add-whitelist'),
+        whitelistFeedback: document.getElementById('whitelist-feedback'),
+        whitelistList: document.getElementById('whitelist-list'),
         socialPresets: document.getElementById('social-presets'),
+        socialPresetsWrap: document.getElementById('social-presets-wrap'),
+        socialMasterToggle: document.getElementById('social-master-toggle'),
+        socialMasterLabel: document.getElementById('social-master-label'),
+        socialMasterSites: document.getElementById('social-master-sites'),
         whyTextarea: document.getElementById('why-i-quit'),
         whySaveIndicator: document.getElementById('why-save-indicator'),
         totalBlocks: document.getElementById('total-blocks'),
@@ -383,17 +425,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         outletFeedback: document.getElementById('outlet-feedback'),
         outletsList: document.getElementById('outlets-list'),
         popupLangToggle: document.getElementById('popup-lang-toggle'),
+        themeLightToggle: document.getElementById('theme-light-toggle'),
+        themeDarkToggle: document.getElementById('theme-dark-toggle'),
+        settingsToggle: document.getElementById('hero-settings-toggle'),
+        settingsPanel: document.getElementById('hero-settings-panel'),
         extensionToggle: document.getElementById('extension-toggle')
     };
 
+    if (elements.settingsToggle) {
+        elements.settingsToggle.textContent = '\u2699';
+    }
+
     const state = {
         allBlockedSites: [],
+        visibleBlockedSites: [],
         manualSites: [],
         systemBlockedSites: [],
+        whitelistSites: [],
         selectedSocialSites: [],
         wholesomeOutlets: [],
         language: 'en',
-        extensionEnabled: true
+        theme: 'light',
+        extensionEnabled: true,
+        settingsOpen: false,
+        socialPresetsExpanded: false
     };
 
     let whySaveTimeout = null;
@@ -421,8 +476,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeWhyIQuit();
     initializeFocusTimer();
     bindGeneralHandlers();
+    bindSocialMasterHandlers();
+    bindWhitelistHandlers();
     bindExtensionHandler();
-    bindRedirectHandlers();
+    bindThemeHandlers();
+    bindSettingsHandlers();
     bindOutletHandlers();
     bindLanguageHandlers();
     await hydrateUi();
@@ -433,6 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (
             changes.blockedSites ||
             changes.manuallyAddedSites ||
+            changes.unblockedSites ||
             changes.blockStats ||
             changes.streakDays ||
             changes.bestStreak ||
@@ -440,10 +499,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             changes.socialMediaBlocked ||
             changes.gamingBlocked ||
             changes.safeSearchEnabled ||
-            changes.redirectModeEnabled ||
             changes.adultSitesCache ||
             changes.selectedSocialSites ||
             changes.wholesomeOutlets ||
+            changes.popupTheme ||
             changes.extensionEnabled
         ) {
             hydrateUi();
@@ -471,49 +530,94 @@ document.addEventListener('DOMContentLoaded', async () => {
             'adultSitesCache',
             'wholesomeOutlets',
             'popupLanguage',
+            'popupTheme',
             'extensionEnabled',
-            ...Object.keys(DEFAULT_REDIRECT_SETTINGS)
         ]);
 
-        const redirectSettings = getRedirectSettings(storage);
         const unblockedSet = new Set((storage.unblockedSites || []).map(normalizeDomain));
-        const blockedSites = (storage.blockedSites || [])
+        const availableSocialDomains = new Set(SOCIAL_PRESETS.map((site) => normalizeDomain(site.domain)));
+        const manualSites = (storage.manuallyAddedSites || [])
             .map(normalizeDomain)
-            .filter((site) => !unblockedSet.has(site))
+            .filter((site) => site && !unblockedSet.has(site))
             .slice()
             .sort((a, b) => a.localeCompare(b));
-        const manualSites = (storage.manuallyAddedSites || []).slice().sort((a, b) => a.localeCompare(b));
-        const manualSet = new Set(manualSites);
+        const socialCategorySites = storage.socialMediaBlocked
+            ? ((storage.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain))
+                .map(normalizeDomain)
+                .filter((site) => site && !unblockedSet.has(site)))
+            : [];
+        const gamingCategorySites = storage.gamingBlocked
+            ? GAMING_SITES
+                .map(normalizeDomain)
+                .filter((site) => site && !unblockedSet.has(site))
+            : [];
+        const adultDatabaseSites = storage.adultContentBlocked
+            ? ((Array.isArray(storage.adultSitesCache) && storage.adultSitesCache.length > 0
+                ? storage.adultSitesCache
+                : (Array.isArray(uniqueAdultSites) ? uniqueAdultSites : []))
+                .map(normalizeDomain)
+                .filter((site) => site && !unblockedSet.has(site)))
+            : [];
+        const allProtectedSites = [...new Set([
+            ...manualSites,
+            ...socialCategorySites,
+            ...gamingCategorySites,
+            ...adultDatabaseSites
+        ])]
+            .sort((a, b) => a.localeCompare(b));
+        const visibleBlockedSites = [...new Set([
+            ...manualSites,
+            ...socialCategorySites
+        ])].sort((a, b) => a.localeCompare(b));
+        const visibleSet = new Set(visibleBlockedSites);
 
-        state.allBlockedSites = blockedSites;
+        state.allBlockedSites = allProtectedSites;
+        state.visibleBlockedSites = visibleBlockedSites;
         state.manualSites = manualSites;
-        state.systemBlockedSites = blockedSites.filter((site) => !manualSet.has(site));
-        state.selectedSocialSites = storage.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain);
+        state.systemBlockedSites = allProtectedSites.filter((site) => !visibleSet.has(site));
+        state.whitelistSites = [...new Set((storage.unblockedSites || []).map(normalizeDomain).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b));
+        const sanitizedSocialSites = (storage.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain))
+            .map(normalizeDomain)
+            .filter((site) => availableSocialDomains.has(site));
+        state.selectedSocialSites = sanitizedSocialSites;
         const sanitizedOutlets = normalizeOutlets(storage.wholesomeOutlets);
         state.wholesomeOutlets = sanitizedOutlets;
         state.language = storage.popupLanguage || 'en';
+        state.theme = storage.popupTheme === 'dark' ? 'dark' : 'light';
         state.extensionEnabled = storage.extensionEnabled !== false;
 
-        if (!areOutletsEqual(storage.wholesomeOutlets, sanitizedOutlets)) {
-            await chrome.storage.local.set({ wholesomeOutlets: sanitizedOutlets });
+        const storageSelectedSocialSites = (storage.selectedSocialSites || []).map(normalizeDomain).filter(Boolean);
+        const shouldPatchSocialSites = storageSelectedSocialSites.length !== sanitizedSocialSites.length ||
+            storageSelectedSocialSites.some((site, index) => site !== sanitizedSocialSites[index]);
+
+        if (!areOutletsEqual(storage.wholesomeOutlets, sanitizedOutlets) || shouldPatchSocialSites) {
+            const patch = {};
+            if (!areOutletsEqual(storage.wholesomeOutlets, sanitizedOutlets)) {
+                patch.wholesomeOutlets = sanitizedOutlets;
+            }
+            if (shouldPatchSocialSites) {
+                patch.selectedSocialSites = sanitizedSocialSites;
+            }
+            await chrome.storage.local.set(patch);
         }
 
         syncCheckboxPair(elements.adultToggleHome, elements.adultToggleBlock, !!storage.adultContentBlocked);
         elements.socialToggle.checked = !!storage.socialMediaBlocked;
         elements.gamingToggle.checked = !!storage.gamingBlocked;
         elements.safeSearchToggle.checked = !!storage.safeSearchEnabled;
-        elements.redirectToggle.checked = redirectSettings.redirectModeEnabled;
-        elements.redirectToggleHome.checked = redirectSettings.redirectModeEnabled;
-        elements.redirectSettings.hidden = !redirectSettings.redirectModeEnabled;
         elements.whyTextarea.value = storage.whyIQuit || elements.whyTextarea.value;
 
+        applyTheme();
         updateAdultDatabaseBadge(storage.adultSitesCache);
         renderProtectedSearch();
+        renderWhitelist();
+        renderSocialMasterSites();
+        renderSocialMasterDropdown();
         renderSocialPresets();
         renderOutlets();
         renderStats(storage);
-        renderHero(storage, redirectSettings);
-        renderRedirectPreview(redirectSettings);
+        renderHero(storage);
         applyLanguage();
     }
 
@@ -529,6 +633,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function bindGeneralHandlers() {
         elements.addSiteButton.addEventListener('click', addSite);
+        elements.blockCurrentPageButton?.addEventListener('click', blockCurrentPage);
         elements.siteInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
@@ -542,7 +647,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.socialToggle.addEventListener('change', () => handleCategoryToggle('social', elements.socialToggle.checked));
         elements.gamingToggle.addEventListener('change', () => handleCategoryToggle('gaming', elements.gamingToggle.checked));
         elements.safeSearchToggle.addEventListener('change', () => {
-            chrome.runtime.sendMessage({ type: 'TOGGLE_SAFE_SEARCH', enabled: elements.safeSearchToggle.checked });
+            chrome.runtime.sendMessage(
+                { type: 'TOGGLE_SAFE_SEARCH', enabled: elements.safeSearchToggle.checked },
+                () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('SafeSearch toggle message failed:', chrome.runtime.lastError.message);
+                    }
+                }
+            );
+        });
+    }
+
+    function bindSocialMasterHandlers() {
+        elements.socialMasterToggle.addEventListener('click', () => {
+            state.socialPresetsExpanded = !state.socialPresetsExpanded;
+            renderSocialMasterDropdown();
+        });
+    }
+
+    function bindWhitelistHandlers() {
+        elements.addWhitelistButton.addEventListener('click', addWhitelistSite);
+        elements.whitelistInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addWhitelistSite();
+            }
         });
     }
 
@@ -554,17 +683,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    function bindRedirectHandlers() {
-        const onRedirectToggle = async (enabled) => {
-            elements.redirectToggle.checked = enabled;
-            elements.redirectToggleHome.checked = enabled;
-            elements.redirectSettings.hidden = !enabled;
-            await saveRedirectSettings({ redirectModeEnabled: enabled });
-            renderRedirectPreview(getRedirectSettings(await chrome.storage.local.get(Object.keys(DEFAULT_REDIRECT_SETTINGS))));
+    function bindThemeHandlers() {
+        const applyAndSaveTheme = async (theme) => {
+            const nextTheme = theme === 'dark' ? 'dark' : 'light';
+            state.theme = nextTheme;
+            applyTheme();
+            await chrome.storage.local.set({ popupTheme: nextTheme });
         };
 
-        elements.redirectToggle.addEventListener('change', () => onRedirectToggle(elements.redirectToggle.checked));
-        elements.redirectToggleHome.addEventListener('change', () => onRedirectToggle(elements.redirectToggleHome.checked));
+        elements.themeLightToggle.addEventListener('click', () => applyAndSaveTheme('light'));
+        elements.themeDarkToggle.addEventListener('click', () => applyAndSaveTheme('dark'));
+    }
+
+    function bindSettingsHandlers() {
+        let hideTimer = null;
+
+        const setSettingsOpen = (isOpen) => {
+            state.settingsOpen = isOpen;
+            elements.settingsToggle.setAttribute('aria-expanded', String(isOpen));
+
+            if (hideTimer) {
+                clearTimeout(hideTimer);
+                hideTimer = null;
+            }
+
+            if (isOpen) {
+                elements.settingsPanel.hidden = false;
+                requestAnimationFrame(() => {
+                    elements.settingsPanel.classList.add('is-open');
+                });
+                return;
+            }
+
+            elements.settingsPanel.classList.remove('is-open');
+            hideTimer = setTimeout(() => {
+                if (!state.settingsOpen) {
+                    elements.settingsPanel.hidden = true;
+                }
+            }, 150);
+        };
+
+        elements.settingsToggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            setSettingsOpen(!state.settingsOpen);
+        });
+
+        elements.settingsPanel.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        document.addEventListener('click', () => {
+            if (!state.settingsOpen) return;
+            setSettingsOpen(false);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && state.settingsOpen) {
+                setSettingsOpen(false);
+            }
+        });
     }
 
     function bindOutletHandlers() {
@@ -706,27 +883,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function handleCategoryToggle(category, enabled) {
-        const storage = await chrome.storage.local.get(['blockedSites', 'selectedSocialSites']);
-        const currentSites = new Set(storage.blockedSites || []);
-
         if (!enabled) {
-            forceToggleState(category, true);
-            showUnblockConfirmation(async () => {
-                getCategorySites(category, storage).forEach((site) => currentSites.delete(site));
+            if (category !== 'adult') {
                 await chrome.storage.local.set({
-                    blockedSites: [...currentSites],
-                    ...(category === 'adult' ? { adultContentBlocked: false } : {}),
                     ...(category === 'social' ? { socialMediaBlocked: false } : {}),
                     ...(category === 'gaming' ? { gamingBlocked: false } : {})
+                });
+                forceToggleState(category, false);
+                return;
+            }
+
+            forceToggleState(category, true);
+            showUnblockConfirmation(async () => {
+                await chrome.storage.local.set({
+                    adultContentBlocked: false
                 });
                 forceToggleState(category, false);
             }, () => forceToggleState(category, true));
             return;
         }
 
-        getCategorySites(category, storage).forEach((site) => currentSites.add(site));
         await chrome.storage.local.set({
-            blockedSites: [...currentSites],
             ...(category === 'adult' ? { adultContentBlocked: true } : {}),
             ...(category === 'social' ? { socialMediaBlocked: true } : {}),
             ...(category === 'gaming' ? { gamingBlocked: true } : {})
@@ -735,23 +912,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function toggleSocialPreset(domain) {
-        const storage = await chrome.storage.local.get(['blockedSites', 'selectedSocialSites', 'socialMediaBlocked']);
-        const blockedSites = new Set(storage.blockedSites || []);
-        const selectedSocialSites = new Set(storage.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain));
+        const storage = await chrome.storage.local.get([
+            'selectedSocialSites',
+            'socialMediaBlocked',
+            'unblockedSites',
+            'blockedSites',
+            'manuallyAddedSites'
+        ]);
+        const selectedSocialSites = new Set((storage.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain)).map(normalizeDomain));
+        const unblockedSites = new Set((storage.unblockedSites || []).map(normalizeDomain));
+        const blockedSites = new Set((storage.blockedSites || []).map(normalizeDomain).filter(Boolean));
+        const manuallyAddedSites = new Set((storage.manuallyAddedSites || []).map(normalizeDomain).filter(Boolean));
         const wasSelected = selectedSocialSites.has(domain);
 
         if (wasSelected) {
             selectedSocialSites.delete(domain);
-            blockedSites.delete(domain);
+            if (!manuallyAddedSites.has(domain)) {
+                blockedSites.delete(domain);
+            }
         } else {
             selectedSocialSites.add(domain);
+            unblockedSites.delete(normalizeDomain(domain));
             blockedSites.add(domain);
         }
 
+        const socialMediaBlocked = !wasSelected || (storage.socialMediaBlocked && selectedSocialSites.size > 0);
+
         await chrome.storage.local.set({
             selectedSocialSites: [...selectedSocialSites],
+            unblockedSites: [...unblockedSites],
             blockedSites: [...blockedSites],
-            socialMediaBlocked: !wasSelected || (storage.socialMediaBlocked && selectedSocialSites.size > 0)
+            socialMediaBlocked
         });
     }
 
@@ -777,6 +968,152 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    async function blockCurrentPage() {
+        const rt = getRuntimeText();
+        let activeTab;
+        let site = '';
+
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            [activeTab] = tabs;
+        } catch (error) {
+            setFeedback(elements.feedback, rt.blockCurrentInvalidTab, 'error');
+            return;
+        }
+
+        try {
+            const currentUrl = activeTab?.url || '';
+            const parsed = new URL(currentUrl);
+            if (!['http:', 'https:'].includes(parsed.protocol)) {
+                setFeedback(elements.feedback, rt.blockCurrentInvalidTab, 'error');
+                return;
+            }
+
+            site = normalizeDomain(parsed.hostname || '');
+            if (!isValidDomain(site)) {
+                setFeedback(elements.feedback, rt.blockCurrentInvalidTab, 'error');
+                return;
+            }
+        } catch (error) {
+            setFeedback(elements.feedback, rt.blockCurrentInvalidTab, 'error');
+            return;
+        }
+
+        chrome.runtime.sendMessage({ type: 'ADD_MANUAL_SITE', site }, (response) => {
+            if (chrome.runtime.lastError) {
+                setFeedback(elements.feedback, rt.addSiteCommError, 'error');
+                return;
+            }
+
+            const reason = (response?.reason || '').toLowerCase();
+            const alreadyBlocked = reason.includes('already blocked');
+            if (!response?.success && !alreadyBlocked) {
+                setFeedback(elements.feedback, response?.reason || rt.addSiteCouldNotBlock, 'error');
+                return;
+            }
+
+            const blockedPageUrl = chrome.runtime.getURL(`blocked.html?site=${encodeURIComponent(site)}`);
+            setFeedback(elements.feedback, localizeTemplate(rt.blockCurrentBlocked, { site }), 'success');
+
+            if (typeof activeTab?.id !== 'number') {
+                chrome.tabs.create({ url: blockedPageUrl });
+                return;
+            }
+
+            chrome.tabs.update(activeTab.id, { url: blockedPageUrl }, () => {
+                if (chrome.runtime.lastError) {
+                    setFeedback(elements.feedback, rt.blockCurrentRedirectFailed, 'error');
+                }
+            });
+        });
+    }
+
+    async function addWhitelistSite() {
+        const rt = getRuntimeText();
+        const site = normalizeDomain(elements.whitelistInput.value);
+        const whitelistInvalid = rt.whitelistInvalid || RUNTIME_TEXT.en.whitelistInvalid;
+        const whitelistDuplicate = rt.whitelistDuplicate || RUNTIME_TEXT.en.whitelistDuplicate;
+        const whitelistAdded = rt.whitelistAdded || RUNTIME_TEXT.en.whitelistAdded;
+
+        if (!isValidDomain(site)) {
+            setFeedback(elements.whitelistFeedback, whitelistInvalid, 'error');
+            return;
+        }
+
+        if (state.whitelistSites.includes(site)) {
+            setFeedback(elements.whitelistFeedback, whitelistDuplicate, 'error');
+            return;
+        }
+
+        chrome.runtime.sendMessage({ type: 'ADD_ALLOW_SITE', site }, (response) => {
+            if (chrome.runtime.lastError || !response?.success) {
+                setFeedback(elements.whitelistFeedback, response?.reason || whitelistInvalid, 'error');
+                return;
+            }
+            elements.whitelistInput.value = '';
+            setFeedback(elements.whitelistFeedback, localizeTemplate(whitelistAdded, { site }), 'success');
+        });
+    }
+
+    async function removeWhitelistSite(site) {
+        const rt = getRuntimeText();
+        const whitelistRemoved = rt.whitelistRemoved || RUNTIME_TEXT.en.whitelistRemoved;
+        chrome.runtime.sendMessage({ type: 'REMOVE_ALLOW_SITE', site }, (response) => {
+            if (chrome.runtime.lastError || !response?.success) {
+                setFeedback(elements.whitelistFeedback, response?.reason || whitelistRemoved, 'error');
+                return;
+            }
+            setFeedback(elements.whitelistFeedback, localizeTemplate(whitelistRemoved, { site }), 'success');
+        });
+    }
+
+    function renderWhitelist() {
+        const rt = getRuntimeText();
+        const whitelistEmpty = rt.whitelistEmpty || RUNTIME_TEXT.en.whitelistEmpty;
+        const whitelistRemove = rt.whitelistRemove || RUNTIME_TEXT.en.whitelistRemove;
+        elements.whitelistList.innerHTML = '';
+
+        if (state.whitelistSites.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'blocked-empty';
+            empty.textContent = whitelistEmpty;
+            elements.whitelistList.appendChild(empty);
+            return;
+        }
+
+        state.whitelistSites.forEach((site) => {
+            const item = document.createElement('div');
+            item.className = 'blocked-item';
+            item.innerHTML = `
+                <div><strong>${site}</strong></div>
+                <button type="button">${whitelistRemove}</button>
+            `;
+            item.querySelector('button').addEventListener('click', () => removeWhitelistSite(site));
+            elements.whitelistList.appendChild(item);
+        });
+    }
+
+    function renderSocialMasterSites() {
+        const selectedSet = new Set((state.selectedSocialSites || []).map(normalizeDomain));
+        const total = SOCIAL_PRESETS.length;
+        const selected = SOCIAL_PRESETS
+            .map((preset) => normalizeDomain(preset.domain))
+            .filter((domain) => selectedSet.has(domain))
+            .length;
+
+        elements.socialMasterSites.innerHTML = '';
+
+        const summary = document.createElement('small');
+        summary.className = 'social-master-summary';
+        summary.textContent = `${selected}/${total} selected`;
+        elements.socialMasterSites.appendChild(summary);
+    }
+
+    function renderSocialMasterDropdown() {
+        elements.socialMasterToggle.setAttribute('aria-expanded', String(state.socialPresetsExpanded));
+        elements.socialPresetsWrap.classList.toggle('is-open', state.socialPresetsExpanded);
+    }
+
     function renderProtectedSearch() {
         const rt = getRuntimeText();
         elements.blockedList.innerHTML = '';
@@ -795,8 +1132,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.searchFeedback.className = 'inline-feedback';
 
         if (!query) {
-            if (state.manualSites.length > 0) {
-                state.manualSites.slice(0, 6).forEach((site) => elements.blockedList.appendChild(createBlockedItem(site)));
+            if (state.visibleBlockedSites.length > 0) {
+                state.visibleBlockedSites.slice(0, 8).forEach((site) => elements.blockedList.appendChild(createBlockedItem(site)));
             }
 
             if (state.systemBlockedSites.length > 0) {
@@ -808,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            if (state.manualSites.length === 0 && state.systemBlockedSites.length === 0) {
+            if (state.visibleBlockedSites.length === 0 && state.systemBlockedSites.length === 0) {
                 appendEmptyState(rt.noSitesBlocked);
             }
             return;
@@ -840,12 +1177,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const rt = getRuntimeText();
         elements.socialPresets.innerHTML = '';
         const selectedSet = new Set(state.selectedSocialSites);
-        const blockedSet = new Set(state.allBlockedSites);
 
         SOCIAL_PRESETS.forEach((preset) => {
             const item = document.createElement('div');
-            const isSelected = selectedSet.has(preset.domain);
-            const isBlocked = blockedSet.has(preset.domain);
+            const domain = normalizeDomain(preset.domain);
+            const isSelected = selectedSet.has(domain);
 
             item.className = 'preset-item';
             item.innerHTML = `
@@ -854,10 +1190,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <strong>${preset.label}</strong>
                     <small>${isSelected ? (state.language === 'ar' ? preset.noteAr : preset.note) : rt.presetReadyToAdd}</small>
                 </div>
-                <button class="preset-action ${isBlocked ? 'remove' : 'add'}" type="button">${isBlocked ? rt.presetRemove : rt.presetAdd}</button>
+                <button class="preset-action ${isSelected ? 'remove' : 'add'}" type="button">${isSelected ? rt.presetRemove : rt.presetAdd}</button>
             `;
 
-            item.querySelector('button').addEventListener('click', () => toggleSocialPreset(preset.domain));
+            item.querySelector('button').addEventListener('click', () => toggleSocialPreset(domain));
             elements.socialPresets.appendChild(item);
         });
     }
@@ -973,7 +1309,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.extensionToggle.setAttribute('aria-pressed', String(!state.extensionEnabled));
     }
 
-    function renderHero(storage, redirectSettings) {
+    function applyTheme() {
+        const isDark = state.theme === 'dark';
+        document.body.classList.remove('theme-dark', 'sl-theme-light', 'sl-theme-dark');
+        document.body.classList.add(isDark ? 'sl-theme-dark' : 'sl-theme-light');
+        elements.themeLightToggle.classList.toggle('is-active', !isDark);
+        elements.themeDarkToggle.classList.toggle('is-active', isDark);
+    }
+
+    function renderHero(storage) {
         const rt = getRuntimeText();
         const locale = state.language === 'ar' ? 'ar' : 'en-US';
         renderExtensionToggle();
@@ -1002,7 +1346,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const activeModes = [];
         if (storage.adultContentBlocked) activeModes.push(rt.heroModeAdult);
         if (storage.safeSearchEnabled) activeModes.push(rt.heroModeSafeSearch);
-        if (redirectSettings.redirectModeEnabled) activeModes.push(rt.heroModeRedirect);
 
         if (activeModes.length === 0) {
             elements.heroMode.textContent = rt.heroModeBlockingOnly;
@@ -1019,26 +1362,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         const protectionActive = activeModes.length > 0 || state.allBlockedSites.length > 0;
         elements.statusDot.classList.toggle('active', protectionActive);
         elements.statusHeadline.textContent = protectionActive ? rt.statusActive : rt.statusStandby;
-        elements.statusCopy.textContent = redirectSettings.redirectModeEnabled
-            ? rt.statusCopyRedirect
-            : rt.statusCopyBlocked;
-    }
-
-    function renderRedirectPreview(redirectSettings) {
-        const rt = getRuntimeText();
-        elements.redirectPreview.textContent = redirectSettings.redirectModeEnabled
-            ? rt.redirectPreviewOn
-            : rt.redirectPreviewOff;
+        elements.statusCopy.textContent = rt.statusCopyBlocked;
     }
 
     function applyLanguage() {
         const t = TRANSLATIONS[state.language] || TRANSLATIONS.en;
+        const en = TRANSLATIONS.en;
         const rt = getRuntimeText();
         const branding = getBranding();
         document.documentElement.lang = state.language;
         document.body.dir = state.language === 'ar' ? 'rtl' : 'ltr';
         document.title = branding.name;
         elements.popupLangToggle.textContent = t.lang;
+        elements.themeLightToggle.textContent = state.language === 'ar' ? 'فاتح' : 'Light';
+        elements.themeDarkToggle.textContent = state.language === 'ar' ? 'داكن' : 'Dark';
+        elements.settingsToggle.setAttribute('aria-label', state.language === 'ar' ? 'فتح الإعدادات' : 'Open settings');
+        const settingsTitle = document.querySelector('.settings-title');
+        const settingsLabels = document.querySelectorAll('.settings-label');
+        if (settingsTitle) settingsTitle.textContent = state.language === 'ar' ? 'إعدادات سريعة' : 'Quick settings';
+        if (settingsLabels[0]) settingsLabels[0].textContent = state.language === 'ar' ? 'الحماية' : 'Protection';
+        if (settingsLabels[1]) settingsLabels[1].textContent = state.language === 'ar' ? 'اللغة' : 'Language';
+        if (settingsLabels[2]) settingsLabels[2].textContent = state.language === 'ar' ? 'المظهر' : 'Theme';
         renderExtensionToggle();
         const streakFire = document.querySelector('.streak-fire');
         if (streakFire) {
@@ -1061,8 +1405,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('#adult-content-toggle').closest('.toggle-tile').querySelector('small').textContent = rt.homeAdultDesc;
         document.querySelector('#safe-search-toggle').closest('.toggle-tile').querySelector('strong').textContent = rt.homeSafeSearchTitle;
         document.querySelector('#safe-search-toggle').closest('.toggle-tile').querySelector('small').textContent = rt.homeSafeSearchDesc;
-        document.querySelector('#redirect-mode-toggle-home').closest('.toggle-tile').querySelector('strong').textContent = rt.homeRedirectTitle;
-        document.querySelector('#redirect-mode-toggle-home').closest('.toggle-tile').querySelector('small').textContent = rt.homeRedirectDesc;
         document.querySelector('.reason-card .card-kicker').textContent = t.anchorKicker;
         document.querySelector('.reason-card h3').textContent = t.anchorTitle;
         document.querySelector('#block-page .page-kicker').textContent = t.strictKicker;
@@ -1073,6 +1415,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('#block-page .card-kicker')[0].textContent = t.addSiteKicker;
         document.querySelectorAll('#block-page .card-heading h3')[0].textContent = t.addSiteTitle;
         elements.addSiteButton.textContent = t.blockSiteButton;
+        if (elements.blockCurrentPageButton) {
+            elements.blockCurrentPageButton.textContent = rt.blockCurrentPageButton;
+        }
         document.querySelectorAll('#block-page .card-kicker')[1].textContent = t.presetsKicker;
         document.querySelectorAll('#block-page .card-heading h3')[1].textContent = t.presetsTitle;
         document.querySelector('#adult-content-toggle-block').closest('.toggle-tile').querySelector('strong').textContent = t.adultTitle;
@@ -1081,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('#gaming-toggle').closest('.toggle-tile').querySelector('small').textContent = t.gamingDesc;
         document.querySelectorAll('#block-page .card-kicker')[2].textContent = t.socialKicker;
         document.querySelectorAll('#block-page .card-heading h3')[2].textContent = t.socialTitle;
-        document.querySelector('.inline-switch-label span').textContent = t.socialMaster;
+        elements.socialMasterLabel.textContent = t.socialMaster || en.socialMaster;
         document.querySelectorAll('#block-page .card-kicker')[3].textContent = t.dbKicker;
         document.querySelectorAll('#block-page .card-heading h3')[3].textContent = t.dbTitle;
         document.querySelectorAll('#block-page .page-note')[1].textContent = t.dbNote;
@@ -1096,9 +1441,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.toggle-row small').textContent = t.redirectToggleDesc;
         document.querySelectorAll('#redirect-page .card-kicker')[1].textContent = t.outletsKicker;
         document.querySelectorAll('#redirect-page .card-heading h3')[1].textContent = t.outletsTitle;
+        document.querySelector('#outlets-card .card-kicker').textContent = t.outletsKicker;
+        document.querySelector('#outlets-card .card-heading h3').textContent = t.outletsTitle;
         document.querySelector('label[for="outlet-name"]').textContent = t.nameLabel;
         document.querySelector('label[for="outlet-url"]').textContent = t.urlLabel;
         elements.addOutlet.textContent = t.addOutletButton;
+        document.getElementById('whitelist-kicker').textContent = t.whitelistKicker || en.whitelistKicker;
+        document.getElementById('whitelist-title').textContent = t.whitelistTitle || en.whitelistTitle;
+        document.getElementById('whitelist-note').textContent = t.whitelistNote || en.whitelistNote;
+        document.getElementById('whitelist-add-kicker').textContent = t.whitelistAddKicker || en.whitelistAddKicker;
+        document.getElementById('whitelist-add-title').textContent = t.whitelistAddTitle || en.whitelistAddTitle;
+        elements.addWhitelistButton.textContent = t.whitelistButton || en.whitelistButton;
         document.querySelector('#insights-page .page-kicker').textContent = t.momentumKicker;
         document.querySelector('#insights-page h2').textContent = t.momentumTitle;
         document.querySelector('#insights-page .page-note').textContent = t.momentumNote;
@@ -1121,6 +1474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.whyTextarea.placeholder = t.whyPlaceholder;
         elements.siteInput.placeholder = t.sitePlaceholder;
         elements.searchInput.placeholder = t.searchPlaceholder;
+        elements.whitelistInput.placeholder = t.sitePlaceholder;
         elements.outletName.placeholder = t.outletNamePlaceholder;
         elements.outletUrl.placeholder = t.outletUrlPlaceholder;
         document.querySelectorAll('#focus-duration option').forEach((option) => {
@@ -1163,26 +1517,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (category === 'gaming') {
             elements.gamingToggle.checked = checked;
         }
-    }
-
-    function getCategorySites(category, storage) {
-        if (category === 'adult') return Array.isArray(uniqueAdultSites) ? uniqueAdultSites : [];
-        if (category === 'social') return storage.selectedSocialSites || state.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain);
-        if (category === 'gaming') return GAMING_SITES;
-        return [];
-    }
-
-    function getRedirectSettings(storage) {
-        return { ...DEFAULT_REDIRECT_SETTINGS, ...storage };
-    }
-
-    async function saveRedirectSettings(partialSettings) {
-        const nextSettings = {
-            ...DEFAULT_REDIRECT_SETTINGS,
-            ...(await chrome.storage.local.get(Object.keys(DEFAULT_REDIRECT_SETTINGS))),
-            ...partialSettings
-        };
-        return chrome.storage.local.set(nextSettings);
     }
 
     function normalizeOutlets(outlets) {
