@@ -372,8 +372,6 @@ Object.assign(RUNTIME_TEXT.ar, {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-    chrome.runtime.connect({ name: 'popup' });
-
     const elements = {
         navButtons: [...document.querySelectorAll('.page-nav__button')],
         pages: [...document.querySelectorAll('.page')],
@@ -440,6 +438,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const state = {
         allBlockedSites: [],
+        visibleBlockedSites: [],
         manualSites: [],
         systemBlockedSites: [],
         whitelistSites: [],
@@ -566,11 +565,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             ...adultDatabaseSites
         ])]
             .sort((a, b) => a.localeCompare(b));
-        const manualSet = new Set(manualSites);
+        const visibleBlockedSites = [...new Set([
+            ...manualSites,
+            ...socialCategorySites
+        ])].sort((a, b) => a.localeCompare(b));
+        const visibleSet = new Set(visibleBlockedSites);
 
         state.allBlockedSites = allProtectedSites;
+        state.visibleBlockedSites = visibleBlockedSites;
         state.manualSites = manualSites;
-        state.systemBlockedSites = allProtectedSites.filter((site) => !manualSet.has(site));
+        state.systemBlockedSites = allProtectedSites.filter((site) => !visibleSet.has(site));
         state.whitelistSites = [...new Set((storage.unblockedSites || []).map(normalizeDomain).filter(Boolean))]
             .sort((a, b) => a.localeCompare(b));
         const sanitizedSocialSites = (storage.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain))
@@ -643,7 +647,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.socialToggle.addEventListener('change', () => handleCategoryToggle('social', elements.socialToggle.checked));
         elements.gamingToggle.addEventListener('change', () => handleCategoryToggle('gaming', elements.gamingToggle.checked));
         elements.safeSearchToggle.addEventListener('change', () => {
-            chrome.runtime.sendMessage({ type: 'TOGGLE_SAFE_SEARCH', enabled: elements.safeSearchToggle.checked });
+            chrome.runtime.sendMessage(
+                { type: 'TOGGLE_SAFE_SEARCH', enabled: elements.safeSearchToggle.checked },
+                () => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('SafeSearch toggle message failed:', chrome.runtime.lastError.message);
+                    }
+                }
+            );
         });
     }
 
@@ -901,22 +912,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function toggleSocialPreset(domain) {
-        const storage = await chrome.storage.local.get(['selectedSocialSites', 'socialMediaBlocked', 'unblockedSites']);
+        const storage = await chrome.storage.local.get([
+            'selectedSocialSites',
+            'socialMediaBlocked',
+            'unblockedSites',
+            'blockedSites',
+            'manuallyAddedSites'
+        ]);
         const selectedSocialSites = new Set((storage.selectedSocialSites || SOCIAL_PRESETS.map((site) => site.domain)).map(normalizeDomain));
         const unblockedSites = new Set((storage.unblockedSites || []).map(normalizeDomain));
+        const blockedSites = new Set((storage.blockedSites || []).map(normalizeDomain).filter(Boolean));
+        const manuallyAddedSites = new Set((storage.manuallyAddedSites || []).map(normalizeDomain).filter(Boolean));
         const wasSelected = selectedSocialSites.has(domain);
 
         if (wasSelected) {
             selectedSocialSites.delete(domain);
+            if (!manuallyAddedSites.has(domain)) {
+                blockedSites.delete(domain);
+            }
         } else {
             selectedSocialSites.add(domain);
             unblockedSites.delete(normalizeDomain(domain));
+            blockedSites.add(domain);
         }
+
+        const socialMediaBlocked = !wasSelected || (storage.socialMediaBlocked && selectedSocialSites.size > 0);
 
         await chrome.storage.local.set({
             selectedSocialSites: [...selectedSocialSites],
             unblockedSites: [...unblockedSites],
-            socialMediaBlocked: !wasSelected || (storage.socialMediaBlocked && selectedSocialSites.size > 0)
+            blockedSites: [...blockedSites],
+            socialMediaBlocked
         });
     }
 
@@ -1106,8 +1132,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements.searchFeedback.className = 'inline-feedback';
 
         if (!query) {
-            if (state.manualSites.length > 0) {
-                state.manualSites.slice(0, 6).forEach((site) => elements.blockedList.appendChild(createBlockedItem(site)));
+            if (state.visibleBlockedSites.length > 0) {
+                state.visibleBlockedSites.slice(0, 8).forEach((site) => elements.blockedList.appendChild(createBlockedItem(site)));
             }
 
             if (state.systemBlockedSites.length > 0) {
@@ -1119,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            if (state.manualSites.length === 0 && state.systemBlockedSites.length === 0) {
+            if (state.visibleBlockedSites.length === 0 && state.systemBlockedSites.length === 0) {
                 appendEmptyState(rt.noSitesBlocked);
             }
             return;

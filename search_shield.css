@@ -1,0 +1,20 @@
+/* Performance-first mode: no blur filters, no expensive style-attribute selectors. */
+html.tpb-image-shield-active img,
+html.tpb-image-shield-active picture,
+html.tpb-image-shield-active source,
+html.tpb-image-shield-active video,
+html.tpb-image-shield-active image,
+html.tpb-image-shield-active canvas,
+html.tpb-image-shield-active g-img,
+html.tpb-image-shield-active .serp-item__thumb,
+html.tpb-image-shield-active .MMImage-Container,
+html.tpb-image-shield-active .ImagesViewer-Container {
+  display: none !important;
+}
+
+html.tpb-image-shield-active a[href*="imgurl="],
+html.tpb-image-shield-active a[href*="/images/search"],
+html.tpb-image-shield-active a[href*="img_url="],
+html.tpb-image-shield-active a[href*="cbir_id="] {
+  pointer-events: none !important;
+}

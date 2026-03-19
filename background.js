@@ -2,10 +2,12 @@ importScripts('sites.js');
 
 console.log('Background script loaded');
 
-const BLOCK_RULE_ID_START = 1;
-const BLOCK_RULE_ID_END = 7999;
-const ADULT_KEYWORD_RULE_ID_START = 8000;
-const SAFE_SEARCH_RULE_ID_START = 9000;
+const BLOCK_RULE_ID_START = 10000;
+const BLOCK_RULE_ID_END = 17999;
+const ALLOW_RULE_ID_START = 18000;
+const ALLOW_RULE_ID_END = 19999;
+const ADULT_KEYWORD_RULE_ID_START = 30000;
+const SAFE_SEARCH_RULE_ID_START = 31000;
 const DNR_UNSAFE_RULE_LIMIT = Number(chrome.declarativeNetRequest?.MAX_NUMBER_OF_UNSAFE_DYNAMIC_RULES) || 5000;
 const DNR_RULE_BUFFER = 80;
 const MAX_DYNAMIC_BLOCK_RULES = Math.max(
@@ -14,6 +16,17 @@ const MAX_DYNAMIC_BLOCK_RULES = Math.max(
 );
 const MAX_WHOLESOME_OUTLETS = 3;
 const MAX_CUSTOM_OUTLETS = 1;
+const PROTECTED_SEARCH_ENGINE_DOMAINS = [
+    'google.com',
+    'bing.com',
+    'duckduckgo.com',
+    'yandex.com',
+    'yahoo.com',
+    'search.yahoo.com',
+    'ecosia.org',
+    'search.brave.com',
+    'baidu.com'
+];
 const DEFAULT_SELECTED_SOCIAL_SITES = [
     'youtube.com',
     'facebook.com',
@@ -38,7 +51,13 @@ const FIXED_GAME_OUTLET = { name: FRIENDLY_GAME_NAME, url: CLUMSY_BIRD_LOCAL_URL
 const FIXED_OUTLETS = [FIXED_QURAN_OUTLET, FIXED_GAME_OUTLET];
 const DEFAULT_WHOLESOME_OUTLETS = [...FIXED_OUTLETS];
 const LEGACY_OUTLET_NAMES = new Set(['learn something', 'quick workout', 'meditate']);
+const LEGACY_RULE_IDS_TO_CLEAN = [
+    ...Array.from({ length: 7999 }, (_, index) => index + 1),
+    ...Array.from({ length: 200 }, (_, index) => 8000 + index),
+    ...Array.from({ length: 50 }, (_, index) => 9000 + index)
+];
 let ruleRebuildQueue = Promise.resolve();
+let legacyRuleIdsCleared = false;
 
 function queueRuleRebuild(reason) {
     ruleRebuildQueue = ruleRebuildQueue
@@ -48,6 +67,24 @@ function queueRuleRebuild(reason) {
             console.error(`Rule rebuild failed (${reason}):`, error);
         });
     return ruleRebuildQueue;
+}
+
+async function clearLegacyRuleIdsOnce() {
+    if (legacyRuleIdsCleared) {
+        return;
+    }
+
+    await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: LEGACY_RULE_IDS_TO_CLEAN,
+        addRules: []
+    });
+
+    await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: LEGACY_RULE_IDS_TO_CLEAN,
+        addRules: []
+    });
+
+    legacyRuleIdsCleared = true;
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -201,6 +238,37 @@ chrome.declarativeNetRequest.onRuleMatchedDebug?.addListener((info) => {
     }
 });
 
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    const candidateUrl = changeInfo.url || tab?.url;
+    if (!candidateUrl) {
+        return;
+    }
+
+    enforceTabBlockFallback(tabId, candidateUrl).catch((error) => {
+        console.error('Tab fallback blocker failed:', error);
+    });
+});
+
+chrome.webNavigation.onCommitted.addListener((details) => {
+    if (details.frameId !== 0 || !details.url) {
+        return;
+    }
+
+    enforceTabBlockFallback(details.tabId, details.url).catch((error) => {
+        console.error('Navigation fallback blocker failed (onCommitted):', error);
+    });
+});
+
+chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+    if (details.frameId !== 0 || !details.url) {
+        return;
+    }
+
+    enforceTabBlockFallback(details.tabId, details.url).catch((error) => {
+        console.error('Navigation fallback blocker failed (history):', error);
+    });
+});
+
 chrome.runtime.setUninstallURL('https://tally.so/r/wdXdro');
 
 chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesomeOutlets', 'selectedSocialSites', 'extensionEnabled'], async (result) => {
@@ -234,6 +302,8 @@ chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesome
 });
 
 async function rebuildAllRules() {
+    await clearLegacyRuleIdsOnce();
+
     const extensionState = await chrome.storage.local.get(Object.keys(DEFAULT_EXTENSION_SETTINGS));
     const extensionEnabled = extensionState.extensionEnabled !== false;
 
@@ -246,7 +316,17 @@ async function rebuildAllRules() {
 
     await updateBlockingRules();
 
-    const state = await chrome.storage.local.get(['adultContentBlocked', 'safeSearchEnabled']);
+    const state = await chrome.storage.local.get([
+        'blockedSites',
+        'manuallyAddedSites',
+        'unblockedSites',
+        'selectedSocialSites',
+        'socialMediaBlocked',
+        'gamingBlocked',
+        'adultContentBlocked',
+        'safeSearchEnabled'
+    ]);
+    await syncBlockedSitesIndex(state);
     await updateAdultKeywordRules(!!state.adultContentBlocked);
     await updateSafeSearchRules(state.safeSearchEnabled !== false);
 }
@@ -265,14 +345,22 @@ async function updateBlockingRules() {
 
     const rules = [];
     let ruleId = BLOCK_RULE_ID_START;
+    let allowRuleId = ALLOW_RULE_ID_START;
     const blockRuleBudget = MAX_DYNAMIC_BLOCK_RULES;
     const blockRuleIds = Array.from({ length: BLOCK_RULE_ID_END - BLOCK_RULE_ID_START + 1 }, (_, index) => index + BLOCK_RULE_ID_START);
+    const allowRuleIds = Array.from({ length: ALLOW_RULE_ID_END - ALLOW_RULE_ID_START + 1 }, (_, index) => index + ALLOW_RULE_ID_START);
+    const managedRuleIds = [...blockRuleIds, ...allowRuleIds];
     const blockedPageUrl = chrome.runtime.getURL('blocked.html');
     const unblockedSites = new Set((state.unblockedSites || []).map(normalizeDomain));
     const extensionEnabled = state.extensionEnabled !== false;
+    const allowSites = deduplicate((state.unblockedSites || []).map(normalizeDomain).filter(Boolean));
 
-    const manualSites = (state.manuallyAddedSites || []).map(normalizeDomain).filter(Boolean);
-    const adultSites = state.adultContentBlocked ? getAdultSites(state).filter((site) => !unblockedSites.has(site)) : [];
+    const manualSites = (state.manuallyAddedSites || [])
+        .map(normalizeDomain)
+        .filter((site) => site && !isProtectedSearchEngineDomain(site));
+    const adultSites = state.adultContentBlocked
+        ? getAdultSites(state).filter((site) => site && !isProtectedSearchEngineDomain(site) && !unblockedSites.has(site))
+        : [];
     const socialSites = state.socialMediaBlocked
         ? sanitizeSelectedSocialSites(state.selectedSocialSites).filter((site) => !unblockedSites.has(site))
         : [];
@@ -282,11 +370,27 @@ async function updateBlockingRules() {
 
     if (!extensionEnabled) {
         await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: blockRuleIds,
+            removeRuleIds: managedRuleIds,
             addRules: []
         });
         return;
     }
+
+    allowSites.forEach((site) => {
+        if (!site || allowRuleId > ALLOW_RULE_ID_END || rules.length >= blockRuleBudget) {
+            return;
+        }
+
+        rules.push({
+            id: allowRuleId++,
+            priority: 100,
+            action: { type: 'allow' },
+            condition: {
+                urlFilter: `||${site}^`,
+                resourceTypes: ['main_frame']
+            }
+        });
+    });
 
     const addDirectSiteRule = (site, matchType, label) => {
         if (!site || unblockedSites.has(site) || ruleId > BLOCK_RULE_ID_END || rules.length >= blockRuleBudget) {
@@ -337,7 +441,7 @@ async function updateBlockingRules() {
     }
 
     await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: blockRuleIds,
+        removeRuleIds: managedRuleIds,
         addRules: rules
     });
 
@@ -346,39 +450,35 @@ async function updateBlockingRules() {
 
 async function updateAdultKeywordRules(enabled) {
     const state = await chrome.storage.local.get([
-        ...Object.keys(DEFAULT_EXTENSION_SETTINGS),
-        'unblockedSites'
+        ...Object.keys(DEFAULT_EXTENSION_SETTINGS)
     ]);
     const extensionEnabled = state.extensionEnabled !== false;
     const shouldEnable = enabled && extensionEnabled;
     const ruleIdsToRemove = Array.from({ length: 200 }, (_, index) => ADULT_KEYWORD_RULE_ID_START + index);
 
-    await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: ruleIdsToRemove,
-        addRules: []
-    });
-
     if (!shouldEnable) {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: ruleIdsToRemove,
+            addRules: []
+        });
         return;
     }
-
-    const excludedRequestDomains = deduplicate((state.unblockedSites || []).map(normalizeDomain).filter(Boolean)).slice(0, 500);
 
     const rules = ADULT_KEYWORDS.map((keyword, index) => {
         return {
             id: ADULT_KEYWORD_RULE_ID_START + index,
-            priority: 4,
+            priority: 250,
             action: { type: 'block' },
             condition: {
                 urlFilter: keyword,
                 resourceTypes: ['main_frame'],
-                ...(excludedRequestDomains.length > 0 ? { excludedRequestDomains } : {})
+                isUrlFilterCaseSensitive: false
             }
         };
     });
 
     await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: [],
+        removeRuleIds: ruleIdsToRemove,
         addRules: rules
     });
 }
@@ -390,12 +490,11 @@ async function updateSafeSearchRules(enabled) {
     const shouldEnable = enabled && extensionEnabled;
     const ruleIdsToRemove = Array.from({ length: 50 }, (_, index) => SAFE_SEARCH_RULE_ID_START + index);
 
-    await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: ruleIdsToRemove,
-        addRules: []
-    });
-
     if (!shouldEnable) {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: ruleIdsToRemove,
+            addRules: []
+        });
         return;
     }
 
@@ -535,7 +634,7 @@ async function updateSafeSearchRules(enabled) {
     ];
 
     await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: [],
+        removeRuleIds: ruleIdsToRemove,
         addRules: rules
     });
 }
@@ -545,6 +644,10 @@ async function handleAddManualSite(siteInput) {
 
     if (!site) {
         return { success: false, reason: 'Please enter a valid domain.' };
+    }
+
+    if (isProtectedSearchEngineDomain(site)) {
+        return { success: false, reason: 'Core search engines are protected. Use keyword/category blocking instead.' };
     }
 
     const state = await chrome.storage.local.get(['manuallyAddedSites', 'blockedSites', 'unblockedSites']);
@@ -848,6 +951,195 @@ function areStringArraysEqual(a, b) {
     }
 
     return left.every((value, index) => value === right[index]);
+}
+
+function findDomainMatch(host, domains) {
+    const normalizedHost = normalizeDomain(host);
+    if (!normalizedHost || !Array.isArray(domains)) {
+        return '';
+    }
+
+    return domains.find((domain) => {
+        const normalizedDomain = normalizeDomain(domain);
+        return normalizedDomain &&
+            (normalizedHost === normalizedDomain || normalizedHost.endsWith(`.${normalizedDomain}`));
+    }) || '';
+}
+
+function isProtectedSearchEngineDomain(domain) {
+    const normalizedDomain = normalizeDomain(domain);
+    if (!normalizedDomain) {
+        return false;
+    }
+
+    return PROTECTED_SEARCH_ENGINE_DOMAINS.some((protectedDomain) => {
+        const normalizedProtected = normalizeDomain(protectedDomain);
+        return normalizedDomain === normalizedProtected || normalizedDomain.endsWith(`.${normalizedProtected}`);
+    });
+}
+
+function resolveFallbackBlockedMatch(host, state) {
+    const blockedSites = deduplicate((state.blockedSites || []).map(normalizeDomain).filter((site) => site && !isProtectedSearchEngineDomain(site)));
+    const blockedMatch = findDomainMatch(host, blockedSites);
+    if (blockedMatch) {
+        return blockedMatch;
+    }
+
+    const manualSites = deduplicate((state.manuallyAddedSites || []).map(normalizeDomain).filter((site) => site && !isProtectedSearchEngineDomain(site)));
+    const manualMatch = findDomainMatch(host, manualSites);
+    if (manualMatch) {
+        return manualMatch;
+    }
+
+    if (state.socialMediaBlocked) {
+        const selectedSocial = sanitizeSelectedSocialSites(state.selectedSocialSites).map(normalizeDomain).filter(Boolean);
+        const socialMatch = findDomainMatch(host, selectedSocial);
+        if (socialMatch) {
+            return socialMatch;
+        }
+    }
+
+    if (state.gamingBlocked) {
+        const gamingList = deduplicate(gamingSites.map(normalizeDomain).filter(Boolean));
+        const gamingMatch = findDomainMatch(host, gamingList);
+        if (gamingMatch) {
+            return gamingMatch;
+        }
+    }
+
+    return '';
+}
+
+function hasExplicitKeywordInUrl(url) {
+    if (!url) {
+        return false;
+    }
+
+    const searchParamKeys = new Set([
+        'q',
+        'query',
+        'text',
+        'p',
+        'wd',
+        'k',
+        'keyword',
+        'search_query',
+        'searchterm'
+    ]);
+
+    const params = new URLSearchParams(url.search || '');
+    const explicitValues = [];
+    params.forEach((value, key) => {
+        if (searchParamKeys.has(String(key || '').toLowerCase())) {
+            explicitValues.push(value || '');
+        }
+    });
+
+    if (explicitValues.length === 0) {
+        return false;
+    }
+
+    const decode = (value) => {
+        try {
+            return decodeURIComponent(value || '');
+        } catch (error) {
+            return value || '';
+        }
+    };
+
+    const candidate = explicitValues.map(decode).join(' ').toLowerCase();
+    if (!candidate.trim()) {
+        return false;
+    }
+
+    return ADULT_KEYWORDS.some((keyword) => candidate.includes(String(keyword).toLowerCase()));
+}
+
+async function enforceTabBlockFallback(tabId, rawUrl) {
+    const blockedPagePrefix = chrome.runtime.getURL('blocked.html');
+
+    if (!rawUrl || rawUrl.startsWith(blockedPagePrefix)) {
+        return;
+    }
+
+    let parsed;
+    try {
+        parsed = new URL(rawUrl);
+    } catch (error) {
+        return;
+    }
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return;
+    }
+
+    const host = normalizeDomain(parsed.hostname);
+    if (!host) {
+        return;
+    }
+
+    const state = await chrome.storage.local.get([
+        'extensionEnabled',
+        'blockedSites',
+        'manuallyAddedSites',
+        'unblockedSites',
+        'selectedSocialSites',
+        'socialMediaBlocked',
+        'gamingBlocked'
+    ]);
+
+    if (state.extensionEnabled === false) {
+        return;
+    }
+
+    if (hasExplicitKeywordInUrl(parsed)) {
+        await chrome.tabs.update(tabId, {
+            url: `${blockedPagePrefix}?site=${encodeURIComponent(host)}`
+        });
+        return;
+    }
+
+    const unblockedSites = deduplicate((state.unblockedSites || []).map(normalizeDomain).filter(Boolean));
+    if (findDomainMatch(host, unblockedSites)) {
+        return;
+    }
+
+    const matchedDomain = resolveFallbackBlockedMatch(host, state);
+    if (!matchedDomain) {
+        return;
+    }
+
+    await chrome.tabs.update(tabId, {
+        url: `${blockedPagePrefix}?site=${encodeURIComponent(matchedDomain)}`
+    });
+}
+
+async function syncBlockedSitesIndex(state) {
+    const unblocked = new Set((state.unblockedSites || []).map(normalizeDomain).filter(Boolean));
+    const manualSites = (state.manuallyAddedSites || [])
+        .map(normalizeDomain)
+        .filter((site) => site && !isProtectedSearchEngineDomain(site));
+    const socialSites = state.socialMediaBlocked
+        ? sanitizeSelectedSocialSites(state.selectedSocialSites).map(normalizeDomain).filter(Boolean)
+        : [];
+    const gamingSitesList = state.gamingBlocked
+        ? gamingSites.map(normalizeDomain).filter(Boolean)
+        : [];
+
+    const computedBlocked = deduplicate([
+        ...manualSites,
+        ...socialSites,
+        ...gamingSitesList
+    ])
+        .filter((site) => site && !unblocked.has(site))
+        .sort((a, b) => a.localeCompare(b));
+
+    const currentBlocked = deduplicate((state.blockedSites || []).map(normalizeDomain).filter(Boolean))
+        .sort((a, b) => a.localeCompare(b));
+
+    if (!areStringArraysEqual(currentBlocked, computedBlocked)) {
+        await chrome.storage.local.set({ blockedSites: computedBlocked });
+    }
 }
 
 function chunkArray(values, size) {
