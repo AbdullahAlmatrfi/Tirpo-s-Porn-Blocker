@@ -39,6 +39,8 @@ const DEFAULT_SELECTED_SOCIAL_SITES = [
 ];
 const ADULT_BLOCKLIST_URL = 'https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt';
 const ADULT_BLOCKLIST_CACHE_MS = 24 * 60 * 60 * 1000;
+const ADULT_BLOCKLIST_REFRESH_ALARM = 'adult-blocklist-refresh';
+const ADULT_BLOCKLIST_REFRESH_PERIOD_MINUTES = 24 * 60;
 const DEFAULT_EXTENSION_SETTINGS = {
     extensionEnabled: true
 };
@@ -87,8 +89,23 @@ async function clearLegacyRuleIdsOnce() {
     legacyRuleIdsCleared = true;
 }
 
+async function ensureAdultBlocklistRefreshAlarm() {
+    const existingAlarm = await chrome.alarms.get(ADULT_BLOCKLIST_REFRESH_ALARM);
+    if (existingAlarm) {
+        return;
+    }
+
+    await chrome.alarms.create(ADULT_BLOCKLIST_REFRESH_ALARM, {
+        delayInMinutes: ADULT_BLOCKLIST_REFRESH_PERIOD_MINUTES,
+        periodInMinutes: ADULT_BLOCKLIST_REFRESH_PERIOD_MINUTES
+    });
+}
+
 chrome.runtime.onInstalled.addListener((details) => {
     console.log('Extension installed or updated:', details?.reason);
+    ensureAdultBlocklistRefreshAlarm().catch((error) => {
+        console.error('Failed to ensure adult blocklist refresh alarm on install:', error);
+    });
 
     if (details?.reason === 'install') {
         chrome.storage.local.set({
@@ -129,6 +146,10 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
+    ensureAdultBlocklistRefreshAlarm().catch((error) => {
+        console.error('Failed to ensure adult blocklist refresh alarm on startup:', error);
+    });
+
     refreshAdultSiteDatabase(false)
         .catch((error) => console.error('Failed to refresh adult database on startup:', error))
         .finally(() => {
@@ -142,11 +163,17 @@ setInterval(() => {
     checkDailyStreak();
 }, 60000);
 
-setInterval(() => {
-    refreshAdultSiteDatabase(false).catch((error) => {
-        console.error('Scheduled adult database refresh failed:', error);
-    });
-}, ADULT_BLOCKLIST_CACHE_MS);
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm?.name !== ADULT_BLOCKLIST_REFRESH_ALARM) {
+        return;
+    }
+
+    refreshAdultSiteDatabase(false)
+        .then(() => queueRuleRebuild('adultBlocklistAlarm'))
+        .catch((error) => {
+            console.error('Scheduled adult database refresh failed:', error);
+        });
+});
 
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace !== 'local') {
@@ -273,6 +300,8 @@ chrome.runtime.setUninstallURL('https://tally.so/r/wdXdro');
 
 chrome.storage.local.get(['safeSearchEnabled', 'adultContentBlocked', 'wholesomeOutlets', 'selectedSocialSites', 'extensionEnabled'], async (result) => {
     try {
+        await ensureAdultBlocklistRefreshAlarm();
+
         const sanitizedOutlets = sanitizeWholesomeOutlets(result.wholesomeOutlets);
         const sanitizedSocialSites = sanitizeSelectedSocialSites(result.selectedSocialSites);
         const normalizedExtensionEnabled = result.extensionEnabled !== false;
